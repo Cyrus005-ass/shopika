@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profil — Shopika</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/globals.css">
+<link rel="stylesheet" href="../css/app-shell.css">
+<link rel="stylesheet" href="../css/app-pages.css">
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="app-shell-backdrop" id="appShellBackdrop"></div>
+  <button class="app-hamburger-btn" id="appHamburgerBtn">☰</button>
+  <aside class="app-sidebar" id="appSidebar"></aside>
+  <main class="app-content">
+    <div class="page-main narrow" id="pageMain"></div>
+  </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/i18n.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/app-shell.js"></script>
+<script>
+const user = renderAppShell("profil");
+if (user) {
+  const initials = (user.firstName[0] + (user.lastName[0] || "")).toUpperCase();
+  document.getElementById("pageMain").innerHTML = `
+    <h1 class="page-title" data-i18n="profileTitle"></h1>
+    <div class="card identity-row">
+      <div class="identity-avatar">${initials}</div>
+      <div>
+        <div class="identity-name">${user.firstName} ${user.lastName}</div>
+        <div class="identity-meta">${user.email} · <span class="verified">✓ <span data-i18n="profileVerified"></span></span> · <span data-i18n="profileNotEditableHere"></span></div>
+      </div>
+    </div>
+    <form id="profileForm" class="card form-stack">
+      <div id="profileError" class="error-box" style="display:none;"></div>
+      <div class="row2">
+        <div class="field"><label data-i18n="profileFirstName"></label><input id="firstName" value="${user.firstName}"></div>
+        <div class="field"><label data-i18n="profileLastName"></label><input id="lastName" value="${user.lastName}"></div>
+      </div>
+      <div class="field"><label data-i18n="profilePhone"></label><input id="phone" type="tel" placeholder="+229 97 00 00 00" value="${user.phone || ""}"></div>
+      <div class="field"><label data-i18n="profileAddress"></label><input id="address" value="${user.address || ""}"></div>
+      <div class="row2">
+        <div class="field"><label data-i18n="profileCountry"></label><input id="country" value="${user.country || ""}"></div>
+        <div class="field"><label data-i18n="profileCity"></label><input id="city" value="${user.city || ""}"></div>
+      </div>
+      <div class="submit-row">
+        <button class="btn-submit" id="saveBtn" data-i18n="profileSave"></button>
+        <span class="saved-msg" id="savedMsg" style="display:none;" data-i18n="profileSaved"></span>
+      </div>
+    </form>`;
+  applyTranslations();
+
+  document.getElementById("profileForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorBox = document.getElementById("profileError");
+    const saveBtn = document.getElementById("saveBtn");
+    const savedMsg = document.getElementById("savedMsg");
+    errorBox.style.display = "none";
+    savedMsg.style.display = "none";
+    saveBtn.disabled = true;
+    try {
+      await Auth.updateProfile({
+        firstName: document.getElementById("firstName").value,
+        lastName: document.getElementById("lastName").value,
+        phone: document.getElementById("phone").value,
+        address: document.getElementById("address").value,
+        country: document.getElementById("country").value,
+        city: document.getElementById("city").value,
+      });
+      savedMsg.style.display = "inline";
+    } catch (err) {
+      errorBox.textContent = err.message;
+      errorBox.style.display = "block";
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+}
+</script>
+</body>
+</html>

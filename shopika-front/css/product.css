@@ -1,0 +1,16 @@
+.product-main { max-width: 960px; margin: 0 auto; padding: 32px 24px 80px; }
+.product-grid { display: grid; gap: 40px; }
+@media (min-width: 800px) { .product-grid { grid-template-columns: 1fr 1fr; } }
+.product-gallery { height: 340px; border-radius: var(--radius-lg); background: var(--brand-gradient); overflow: hidden; }
+.product-gallery img { width: 100%; height: 100%; object-fit: cover; }
+.product-name { font-size: 26px; font-weight: 700; margin-bottom: 10px; }
+.product-price { font-family: var(--font-display); font-size: 26px; font-weight: 700; margin-bottom: 16px; }
+.product-price-old { font-size: 15px; color: var(--color-gray); text-decoration: line-through; margin-left: 10px; }
+.product-description { color: var(--color-text-soft); line-height: 1.7; margin-bottom: 24px; }
+.product-shop-link { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--color-line); border-radius: var(--radius-md); margin-bottom: 22px; }
+.product-stepper { display: flex; align-items: center; border: 1.5px solid var(--color-line); border-radius: 12px; width: fit-content; margin-bottom: 18px; }
+.product-stepper button { width: 38px; height: 40px; font-size: 17px; font-weight: 700; }
+.product-stepper span { width: 38px; text-align: center; font-weight: 600; }
+.product-actions { display: flex; gap: 10px; }
+.btn-outline-full { flex: 1; padding: 13px; border-radius: var(--radius-full); border: 1.5px solid var(--color-line); font-weight: 600; text-align: center; }
+.btn-brand-full { flex: 1; padding: 13px; border-radius: var(--radius-full); background: var(--brand-gradient); color: #fff; font-weight: 600; text-align: center; }

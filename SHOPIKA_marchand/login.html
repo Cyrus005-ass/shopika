@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopika - Connexion</title>
+    <link rel="icon" type="image/png" href="image/favicon.png">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body data-theme="light">
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-logo"><img src="image/logo.png" alt="Shopika"></div>
+
+        <div class="auth-tabs">
+            <button type="button" class="auth-tab active" data-tab="login">Connexion</button>
+            <button type="button" class="auth-tab" data-tab="signup">Créer ma boutique</button>
+        </div>
+
+        <p class="auth-error" id="authError"></p>
+
+        <form class="auth-form active" id="loginForm">
+            <div class="form-group">
+                <label class="form-label">Téléphone</label>
+                <input type="tel" class="form-input" id="loginPhone" placeholder="+225 07 00 00 00 00" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" class="form-input" id="loginPassword" required>
+            </div>
+            <button type="submit" class="btn btn-primary auth-submit">Se connecter</button>
+        </form>
+
+        <form class="auth-form" id="signupForm">
+            <div class="form-group">
+                <label class="form-label">Nom complet</label>
+                <input type="text" class="form-input" id="signupFullName" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Téléphone</label>
+                <input type="tel" class="form-input" id="signupPhone" placeholder="+225 07 00 00 00 00" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" class="form-input" id="signupPassword" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label class="form-label">E-mail (notifications de commandes)</label>
+                <input type="email" class="form-input" id="signupEmail" placeholder="maboutique@gmail.com">
+                <p style="font-size:12px; color:var(--text-secondary); margin-top:4px;">Reçoit un e-mail à chaque commande payée et alerte de stock bas. Optionnel, modifiable dans les paramètres.</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nom de la boutique</label>
+                <input type="text" class="form-input" id="signupStoreName" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Adresse de la boutique</label>
+                <div class="auth-subdomain-wrap">
+                    <input type="text" class="form-input" id="signupSubdomain" placeholder="ma-boutique" required>
+                    <span class="auth-subdomain-suffix">.shopika.com</span>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary auth-submit">Créer ma boutique</button>
+        </form>
+    </div>
+</div>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+</body>
+</html>

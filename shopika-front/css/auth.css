@@ -1,0 +1,23 @@
+.auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--color-bg-soft); padding: 20px; }
+.auth-card { width: 100%; max-width: 420px; background: var(--color-bg); border: 1px solid var(--color-line); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: 36px 34px; }
+.auth-logo { text-align: center; font-family: var(--font-display); font-weight: 700; font-size: 20px; margin-bottom: 24px; }
+.auth-title { font-size: 21px; font-weight: 700; text-align: center; margin-bottom: 4px; }
+.auth-subtitle { font-size: 14px; color: var(--color-gray); text-align: center; margin-bottom: 24px; }
+.auth-error { background: var(--color-danger-bg); color: var(--color-danger); font-size: 13.5px; border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 16px; }
+.auth-success { background: var(--color-success-bg); color: var(--color-success); font-size: 13.5px; border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 16px; }
+.auth-form { display: flex; flex-direction: column; gap: 16px; }
+.auth-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.auth-field label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: var(--color-text-soft); }
+.auth-field input { width: 100%; padding: 11px 13px; border-radius: 12px; border: 1.5px solid var(--color-line); font-size: 14px; outline: none; background: var(--color-bg); color: var(--color-text); }
+.auth-field input:focus { border-color: var(--color-pink); }
+.auth-submit { background: var(--brand-gradient); color: #fff; font-weight: 600; padding: 13px; border-radius: var(--radius-full); font-size: 15px; }
+.auth-submit:disabled { opacity: .6; }
+.auth-footer { text-align: center; font-size: 13.5px; color: var(--color-gray); margin-top: 20px; }
+.auth-footer a { color: var(--color-pink); font-weight: 600; }
+.code-input { width: 100%; padding: 14px; border-radius: 14px; border: 1.5px solid var(--color-line); text-align: center; font-size: 26px; letter-spacing: .6em; font-weight: 700; outline: none; background: var(--color-bg); color: var(--color-text); }
+.code-input:focus { border-color: var(--color-pink); }
+.timer-row { text-align: center; margin-top: 18px; font-size: 14px; }
+.timer-countdown { color: var(--color-gray); }
+.resend-btn { color: var(--color-pink); font-weight: 600; }
+.resend-btn:disabled { opacity: .6; }
+.back-link { display: block; text-align: center; margin-top: 22px; font-size: 12.5px; color: var(--color-gray); }

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panier — Shopika</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/globals.css">
+<link rel="stylesheet" href="../css/app-shell.css">
+<link rel="stylesheet" href="../css/app-pages.css">
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="app-shell-backdrop" id="appShellBackdrop"></div>
+  <button class="app-hamburger-btn" id="appHamburgerBtn">☰</button>
+  <aside class="app-sidebar" id="appSidebar"></aside>
+  <main class="app-content">
+    <div class="page-main" id="pageMain"></div>
+  </main>
+</div>
+
+<!-- Bloc de paiement : s'ouvre sur CETTE MÊME page, pas de redirection -->
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" data-i18n="checkoutModalTitle">Finaliser le paiement</div>
+      <button class="modal-close" id="closeModalBtn">✕</button>
+    </div>
+
+    <div id="modalError" class="error-box" style="display:none; margin-bottom:14px;"></div>
+
+    <div class="modal-section-label" data-i18n="checkoutAddress">Adresse de livraison</div>
+    <div class="field" style="margin-bottom:10px;"><input id="mAddress" data-i18n-ph="profileAddress" placeholder="Adresse"></div>
+    <div class="row2">
+      <div class="field"><input id="mCity" data-i18n-ph="profileCity" placeholder="Ville"></div>
+      <div class="field">
+        <select id="mCountry">
+          <option value="" data-i18n="checkoutCountrySelect">Sélectionnez votre pays</option>
+          <option>Bénin</option><option>Burkina Faso</option><option>Cap-Vert</option>
+          <option>Côte d'Ivoire</option><option>Gambie</option><option>Ghana</option>
+          <option>Guinée</option><option>Guinée-Bissau</option><option>Liberia</option>
+          <option>Mali</option><option>Niger</option><option>Nigeria</option>
+          <option>Sénégal</option><option>Sierra Leone</option><option>Togo</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin-top:10px;"><input id="mPhone" type="tel" placeholder="+229 97 00 00 00"></div>
+
+    <div class="modal-section-label" data-i18n="checkoutPaymentMethods">Moyen de paiement</div>
+    <div class="pay-methods-grid">
+      <div class="pay-method selected" data-method="WAVE" onclick="setModalPayment('WAVE')">
+        <div class="pay-badge" style="background:#00A3E0;">Wave</div><div class="pay-method-name">Wave</div>
+      </div>
+      <div class="pay-method" data-method="MTN_MOMO" onclick="setModalPayment('MTN_MOMO')">
+        <div class="pay-badge" style="background:#FFCC00; color:#1A1A1A;">MTN</div><div class="pay-method-name">MTN MoMo</div>
+      </div>
+      <div class="pay-method" data-method="MOOV_MONEY" onclick="setModalPayment('MOOV_MONEY')">
+        <div class="pay-badge" style="background:#004A9F;">Moov</div><div class="pay-method-name">Moov Money</div>
+      </div>
+      <div class="pay-method" data-method="ORANGE_MONEY" onclick="setModalPayment('ORANGE_MONEY')">
+        <div class="pay-badge" style="background:#FF6600;">OM</div><div class="pay-method-name">Orange Money</div>
+      </div>
+      <div class="pay-method" data-method="VISA" onclick="setModalPayment('VISA')">
+        <div class="pay-badge" style="background:#1A1F71;">VISA</div><div class="pay-method-name">Visa</div>
+      </div>
+      <div class="pay-method" data-method="MASTERCARD" onclick="setModalPayment('MASTERCARD')">
+        <div class="pay-badge" style="background:linear-gradient(90deg,#EB001B,#F79E1B);">MC</div><div class="pay-method-name">Mastercard</div>
+      </div>
+    </div>
+
+    <div class="escrow-notice">
+      <span class="icon">🔒</span>
+      <span data-i18n="escrowNoticeText">Votre paiement est conservé en sécurité par Shopika (séquestre) jusqu'à ce que vous confirmiez avoir reçu votre commande.</span>
+    </div>
+
+    <div class="modal-total-row">
+      <span data-i18n="checkoutTotalToPay">Total à payer</span>
+      <span id="modalTotal">0 FCFA</span>
+    </div>
+    <button class="modal-submit" id="confirmPaymentBtn" data-i18n="checkoutConfirmPayment">Confirmer le paiement</button>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/i18n.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/product-card.js"></script>
+<script src="../js/app-shell.js"></script>
+<script>
+const user = renderAppShell("panier");
+let modalPayment = "WAVE";
+let currentItems = []; // rempli par renderCart(), réutilisé par le modal de paiement
+
+async function renderCart() {
+  const cart = Store.getCart();
+  const main = document.getElementById("pageMain");
+
+  if (cart.length === 0) {
+    currentItems = [];
+    main.innerHTML = `
+      <h1 class="page-title" data-i18n="cartTitle"></h1>
+      <div class="empty-box">
+        <span data-i18n="cartEmpty"></span><br>
+        <a href="../marketplace.html" class="empty-cta" data-i18n="cartBrowse"></a>
+      </div>`;
+    applyTranslations();
+    return;
+  }
+
+  // Toujours revérifié contre le backend : prix, stock et frais de
+  // livraison (définis par CHAQUE marchand sur sa propre boutique) à jour.
+  const products = await Store.getProductsByIds(cart.map((l) => l.productId));
+  currentItems = cart
+    .map((line) => ({ line, product: products.find((p) => p.id === line.productId) }))
+    .filter((x) => x.product);
+
+  if (currentItems.length === 0) {
+    main.innerHTML = `
+      <h1 class="page-title" data-i18n="cartTitle"></h1>
+      <div class="empty-box"><span data-i18n="cartEmpty"></span><br>
+        <a href="../marketplace.html" class="empty-cta" data-i18n="cartBrowse"></a></div>`;
+    applyTranslations();
+    return;
+  }
+
+  const { subtotal, shipping } = computeTotals(currentItems);
+
+  main.innerHTML = `
+    <h1 class="page-title" data-i18n="cartTitle"></h1>
+    <div class="cart-layout">
+      <div class="cart-items-card">
+        ${currentItems.map(({ line, product }) => {
+          const img = product.images && product.images[0] ? product.images[0].url : "";
+          return `
+          <div class="cart-item">
+            <div class="cart-item-thumb">${img ? `<img src="${img}" alt="${product.name}">` : ""}</div>
+            <div style="flex:1; min-width:0;">
+              <div class="cart-item-name">${product.name}</div>
+              <div class="cart-item-shop">${product.shop ? product.shop.name : ""}</div>
+            </div>
+            <div class="qty-stepper">
+              <button onclick="changeQty('${product.id}', -1)">−</button>
+              <span>${line.quantity}</span>
+              <button onclick="changeQty('${product.id}', 1)">+</button>
+            </div>
+            <div class="cart-item-price">${formatPrice(product.price * line.quantity)}</div>
+            <button class="remove-btn" onclick="removeItem('${product.id}')">🗑</button>
+          </div>`;
+        }).join("")}
+      </div>
+      <div>
+        <div class="summary-card">
+          <div class="summary-row"><span data-i18n="cartSubtotal"></span><span>${formatPrice(subtotal)}</span></div>
+          <div class="summary-row"><span data-i18n="cartShipping"></span><span>${formatPrice(shipping)}</span></div>
+          <div class="summary-total"><span data-i18n="cartTotal"></span><span>${formatPrice(subtotal + shipping)}</span></div>
+          <button class="checkout-btn" id="openModalBtn" data-i18n="cartOrder" style="border:none; width:100%;"></button>
+          <a href="../marketplace.html" class="continue-link" data-i18n="cartContinue"></a>
+        </div>
+      </div>
+    </div>`;
+  applyTranslations();
+  document.getElementById("openModalBtn").addEventListener("click", openPaymentModal);
+}
+
+/**
+ * Le panier peut contenir des articles de PLUSIEURS boutiques. Chaque
+ * boutique a ses propres frais de livraison (définis par son marchand,
+ * plus aucune valeur fixe côté client) — on ne compte ces frais qu'UNE
+ * fois par boutique présente dans le panier, pas par article.
+ */
+function computeTotals(items) {
+  const subtotal = items.reduce((s, x) => s + x.product.price * x.line.quantity, 0);
+  const shopIds = new Set();
+  let shipping = 0;
+  items.forEach((x) => {
+    if (x.product.shop && !shopIds.has(x.product.shop.id)) {
+      shopIds.add(x.product.shop.id);
+      shipping += x.product.shop.shippingFee || 0;
+    }
+  });
+  return { subtotal, shipping };
+}
+
+function changeQty(productId, delta) {
+  const cart = Store.getCart();
+  const line = cart.find((l) => l.productId === productId);
+  if (line) Store.setCartQuantity(productId, line.quantity + delta);
+  renderCart();
+}
+function removeItem(productId) {
+  Store.removeFromCart(productId);
+  renderCart();
+}
+
+/* ---------------- Bloc de paiement (modal, même page) ---------------- */
+function openPaymentModal() {
+  document.getElementById("mAddress").value = user.address || "";
+  document.getElementById("mCity").value = user.city || "";
+  document.getElementById("mPhone").value = user.phone || "";
+  document.getElementById("modalError").style.display = "none";
+  updateModalTotal();
+  document.getElementById("paymentModal").classList.add("open");
+}
+function closePaymentModal() {
+  document.getElementById("paymentModal").classList.remove("open");
+}
+document.getElementById("closeModalBtn").addEventListener("click", closePaymentModal);
+document.getElementById("paymentModal").addEventListener("click", (e) => {
+  if (e.target.id === "paymentModal") closePaymentModal();
+});
+
+function setModalPayment(method) {
+  modalPayment = method;
+  document.querySelectorAll(".pay-method").forEach((el) => el.classList.toggle("selected", el.getAttribute("data-method") === method));
+}
+function updateModalTotal() {
+  const { subtotal, shipping } = computeTotals(currentItems);
+  document.getElementById("modalTotal").textContent = formatPrice(subtotal + shipping);
+}
+
+document.getElementById("confirmPaymentBtn").addEventListener("click", async () => {
+  const address = document.getElementById("mAddress").value.trim();
+  const city = document.getElementById("mCity").value.trim();
+  const country = document.getElementById("mCountry").value;
+  const phone = document.getElementById("mPhone").value.trim();
+  const errorBox = document.getElementById("modalError");
+  errorBox.style.display = "none";
+
+  if (!address || !city || !country || !phone) {
+    errorBox.textContent = getLang() === "fr" ? "Merci de remplir tous les champs." : "Please fill in every field.";
+    errorBox.style.display = "block";
+    return;
+  }
+
+  const btn = document.getElementById("confirmPaymentBtn");
+  btn.disabled = true;
+  btn.textContent = t("checkoutConfirming");
+
+  // Le panier peut contenir des articles de plusieurs boutiques : une
+  // commande réelle est créée PAR BOUTIQUE (le backend calcule lui-même le
+  // sous-total, les frais de livraison de CETTE boutique et le montant
+  // exact, puis déclenche le vrai paiement FedaPay — jamais un montant
+  // envoyé par ce navigateur).
+  const byShop = {};
+  currentItems.forEach(({ line, product }) => {
+    const shopId = product.shop ? product.shop.id : product.shopId;
+    if (!byShop[shopId]) byShop[shopId] = [];
+    byShop[shopId].push({ productId: product.id, quantity: line.quantity });
+  });
+
+  try {
+    const createdOrders = [];
+    for (const shopId of Object.keys(byShop)) {
+      const order = await Store.createOrder({
+        shopId,
+        items: byShop[shopId],
+        address, city, country, phone,
+        paymentMethod: modalPayment,
+      });
+      createdOrders.push(order);
+    }
+    Store.clearCart();
+    if (createdOrders.length === 1) {
+      window.location.href = `commande.html?id=${createdOrders[0].id}`;
+    } else {
+      window.location.href = `commandes.html`;
+    }
+  } catch (err) {
+    errorBox.textContent = err.message;
+    errorBox.style.display = "block";
+    btn.disabled = false;
+    btn.textContent = t("checkoutConfirmPayment");
+  }
+});
+
+if (user) renderCart();
+</script>
+</body>
+</html>
