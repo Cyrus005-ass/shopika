@@ -6,5 +6,5 @@
  * et login.html.
  */
 window.SHOPIKA_MERCHANT_CONFIG = {
-  API_BASE_URL: "http://localhost:4000/api",
+  API_BASE_URL: "https://shopika-api-indol.vercel.app/api",
 };

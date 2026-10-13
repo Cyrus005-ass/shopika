@@ -4,5 +4,5 @@
  * (ex: "https://api.shopika.com/api" en production).
  */
 window.SHOPIKA_CONFIG = {
-  API_BASE_URL: "http://localhost:4000/api",
+  API_BASE_URL: "https://shopika-api-indol.vercel.app/api",
 };
