@@ -29,6 +29,8 @@ const allowedOrigins = (process.env.CORS_ORIGINS || '')
   .map(s => s.trim())
   .filter(Boolean);
 
+console.log('[CORS] allowedOrigins:', allowedOrigins);
+
 app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : true }));
 
 // `verify` conserve le corps brut de la requête dans req.rawBody — c'est
