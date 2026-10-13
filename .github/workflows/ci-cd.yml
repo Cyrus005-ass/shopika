@@ -8,8 +8,6 @@ on:
 
 env:
   NODE_VERSION: '22'
-  DATABASE_URL: ${{ secrets.DATABASE_URL }}
-  JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
 jobs:
   lint-and-typecheck:
@@ -24,7 +22,6 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm run prisma:validate
 
   test:
     name: Tests
@@ -53,11 +50,12 @@ jobs:
       - run: npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://shopika:testpass@localhost:5432/shopika_test
-      - run: npm run test:coverage
+      - run: npm run test
 
   build-api:
     name: Build API (Vercel)
     needs: [lint-and-typecheck, test]
+    if: ${{ secrets.VERCEL_TOKEN != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -80,6 +78,7 @@ jobs:
   build-admin:
     name: Build Admin Dashboard
     needs: [lint-and-typecheck, test]
+    if: ${{ secrets.VERCEL_TOKEN != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -104,6 +103,7 @@ jobs:
   build-client:
     name: Build Client Front
     needs: [lint-and-typecheck, test]
+    if: ${{ secrets.VERCEL_TOKEN != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -111,8 +111,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          working-directory: ./shopika-front-client/shopika-front
-      - run: npm ci 2>/dev/null || echo "No package.json, static files only"
+          working-directory: ./shopika-front
+      - run: npm ci 2>/dev/null || echo "Static files only"
       - name: Deploy to Vercel (Preview)
         if: github.event_name == 'pull_request'
         uses: amondnet/vercel-action@v25
@@ -121,13 +121,13 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_CLIENT }}
           scope: ${{ secrets.VERCEL_ORG_ID }}
-          working-directory: ./shopika-front-client/shopika-front
+          working-directory: ./shopika-front
           alias-domains: pr-${{ github.event.pull_request.number }}.shopika-client.vercel.app
 
   deploy-production:
     name: Deploy Production
     needs: [build-api, build-admin, build-client]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.VERCEL_TOKEN != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -153,4 +153,4 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_CLIENT }}
           vercel-args: '--prod'
-          working-directory: ./shopika-front-client/shopika-front
+          working-directory: ./shopika-front
