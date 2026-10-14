@@ -36,9 +36,7 @@ app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : true }));
 // `verify` conserve le corps brut de la requête dans req.rawBody — c'est
 // indispensable pour vérifier la signature des webhooks FedaPay, qui se
 // calcule sur le corps EXACT envoyé, avant tout parsing JSON.
-app.use(express.json({
-  verify: (req, res, buf) => { req.rawBody = buf; }
-}));
+app.use(express.json());
 
 app.use('/api/stores', storesRoutes);
 app.use('/api/auth', authRoutes);
