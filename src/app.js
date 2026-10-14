@@ -40,18 +40,18 @@ app.use(express.json({
   verify: (req, res, buf) => { req.rawBody = buf; }
 }));
 
-app.use('/api/stores', storesRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productsRoutes);
-app.use('/api/orders', ordersRoutes);
-app.use('/api/categories', categoriesRoutes);
-app.use('/api/payments', paymentsRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/support', supportRoutes);
-app.use('/api/notifications', notificationsRoutes);
-app.use('/api/favorites', favoritesRoutes);
-app.use('/api/marketplace', marketplaceRoutes);
-app.use('/api/cron', cronRoutes);
-// /api/orders géré par ordersRoutes (compat client + merchant)
+app.use('/stores', storesRoutes);
+app.use('/auth', authRoutes);
+app.use('/products', productsRoutes);
+app.use('/orders', ordersRoutes);
+app.use('/categories', categoriesRoutes);
+app.use('/payments', paymentsRoutes);
+app.use('/admin', adminRoutes);
+app.use('/support', supportRoutes);
+app.use('/notifications', notificationsRoutes);
+app.use('/favorites', favoritesRoutes);
+app.use('/marketplace', marketplaceRoutes);
+app.use('/cron', cronRoutes);
+// /orders géré par ordersRoutes (compat client + merchant)
 
 module.exports = app;
