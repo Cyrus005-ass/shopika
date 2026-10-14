@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const requireAuth = require('../middleware/auth');
 const { sendError } = require('../lib/http');
+router.post('/test-post-error', (req, res) => { console.log('[test-post-error] handler called'); return sendError(res, 400, 'test post error'); });
 router.get('/test-error', (req, res) => { console.log('[test-error] handler called'); return sendError(res, 400, 'test error'); });router.post('/test-post-error', (req, res) => { console.log('[test-post-error] handler called'); return sendError(res, 400, 'test post error'); });
 router.get('/test-error', (req, res) => { console.log('[test-error] handler called'); return sendError(res, 400, 'test error'); });
 router.get('/test-error', (req, res) => { return sendError(res, 400, 'test error'); });
