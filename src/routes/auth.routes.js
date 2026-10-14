@@ -250,6 +250,7 @@ router.post('/resend-code', verifyLimiter, async (req, res) => {
 // POST /api/auth/login
 // ===================================================================
 router.post('/login', loginLimiter, async (req, res) => {
+  console.log('[auth.login] body:', req.body);
   try {
     const { phone, email, password } = req.body;
     if (!password || (!phone && !email)) {
