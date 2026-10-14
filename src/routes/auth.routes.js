@@ -450,4 +450,8 @@ router.post('/become-merchant', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/test-error', (req, res) => {
+  return sendError(res, 400, 'test error');
+});
+
 module.exports = router;
