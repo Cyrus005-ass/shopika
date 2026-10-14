@@ -254,6 +254,7 @@ router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { phone, email, password } = req.body;
     if (!password || (!phone && !email)) {
+      console.log('[auth.login] missing credentials');
       return sendError(res, 400, 'Identifiant et mot de passe requis');
     }
 
