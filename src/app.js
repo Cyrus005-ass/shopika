@@ -30,6 +30,9 @@ const allowedOrigins = (process.env.CORS_ORIGINS || '')
   .filter(Boolean);
 
 console.log('[CORS] allowedOrigins:', allowedOrigins);
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, time: new Date().toISOString() });
+});
 
 app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : true }));
 

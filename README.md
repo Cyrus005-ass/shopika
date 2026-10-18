@@ -264,3 +264,11 @@ node src/scripts/set-password.js <telephone> <mot_de_passe>
 ## Note sur Prisma
 
 Volontairement figÃ© sur Prisma v6. Ne pas passer en v7 sans tester en profondeur (changements de configuration significatifs).
+## Problèmes connus / Plaintes de l'utilisateur
+
+- **Admin page blanche** : le serveur Vite de l'admin ne tournait pas ou l'origine CORS manquait. Après ajout de `http://localhost:5173` à `CORS_ORIGINS` dans `.env` et démarrage du serveur API (`node src/server.js`) et du dev admin (`npm run dev` dans `shopika-admin/`), la page de connexion s'affiche correctement.
+- **Route `/api/test` non trouvée** : l'endpoint `/api/test` n'existe pas dans le code actuel ; il était présent dans la configuration Vercel uniquement pour des tests de déploiement. Utilisez plutôt `/api/stores/search?q=test` ou toute autre route existante pour vérifier que l'API répond.
+- **API ne démarre pas en local** : assurez-vous d'être dans le répertoire racine du projet et de lancer `node src/server.js` (ou `npm run dev` si le script est défini). Le fichier `src/server.js` écoute sur le port défini par `PORT` (défaut 4000).
+- **Configuration FedaPay en production** : le fichier `.env` contient encore un placeholder pour `FEDAPAY_WEBHOOK_SECRET`. Vous devez le remplacer par le secret réel obtenu depuis le tableau de bord FedaPay après avoir configuré l'URL du webhook sur `https://shopika-api-indol.vercel.app/api/payments/webhook` (ou votre URL locale exposée via ngrok pour les tests).
+- **Frontend client et marchand** : les fronts `shopika-front` et `SHOPIKA_marchand` sont configurés pour pointer vers l'API de production (`https://shopika-api-indol.vercel.app/api`). Pour des tests locaux, modifiez leurs fichiers de configuration (`shopika-front/js/config.js` et `SHOPIKA_marchand/config.js`) afin qu'ils utilisent `http://localhost:4000/api`.
+- **Variables d'environnement manquantes** : certaines variables comme `CRON_SECRET` ou `SMTP_USER`/`SMTP_PASS` peuvent être vides en développement ; elles sont nécessaires uniquement pour les fonctionnalités de cron (annulation des commandes) et d'envoi d'e-mail. Vous pouvez les laisser vides ou mettre des valeurs de test tant que vous n'utilisez pas ces fonctionnalités.

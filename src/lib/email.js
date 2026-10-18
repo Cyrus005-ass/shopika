@@ -14,6 +14,7 @@
 const nodemailer = require('nodemailer');
 
 let transporter = null;
+const FRONT_URL = process.env.FRONT_URL || 'http://localhost:3000';
 function getTransporter() {
   if (!transporter) {
     transporter = nodemailer.createTransport({
@@ -35,7 +36,13 @@ function formatFcf(amount) {
 function emailShell({ title, bodyHtml }) {
   return `
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px">
-      <h2 style="color:#FA1757;margin-bottom:4px">shopika</h2>
+      <div style="text-align:center;margin-bottom:16px">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;margin:0 auto;">
+          <rect width="36" height="36" rx="10" fill="#FA1757"/>
+          <path d="M10 13L14 17L22 11" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div style="font-family:'Outfit',sans-serif;font-weight:800;font-size:18px;color:#111;letter-spacing:-0.5px;margin-top:8px;">shop<span style="color:#FA1757;">ika</span></div>
+      </div>
       <h3 style="margin:8px 0 16px">${title}</h3>
       ${bodyHtml}
       <p style="color:#999;font-size:12px;margin-top:24px">Ce message est automatique — ne répondez pas directement à cet e-mail.</p>
@@ -45,6 +52,10 @@ function emailShell({ title, bodyHtml }) {
 // Envoi générique — sujet + HTML libres.
 async function sendMail({ to, subject, html }) {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[EMAIL DEV - SMTP non configuré]', { to, subject, htmlPreview: html?.slice(0, 120) });
+      return;
+    }
     throw new Error('SMTP non configuré (variables SMTP_* absentes)');
   }
   await getTransporter().sendMail({
@@ -57,17 +68,31 @@ async function sendMail({ to, subject, html }) {
 
 // --- Code de vérification (inscription client) ---
 async function sendVerificationEmail(toEmail, code) {
-  await sendMail({
-    to: toEmail,
-    subject: 'Votre code de vérification Shopika',
-    html: emailShell({
-      title: 'Votre code de vérification',
-      bodyHtml: `
-        <p>Voici votre code de vérification :</p>
-        <p style="font-size:32px;font-weight:700;letter-spacing:6px">${code}</p>
-        <p style="color:#666;font-size:14px">Ce code expire dans 10 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>`
-    })
-  });
+  try {
+    await sendMail({
+      to: toEmail,
+      subject: 'Votre code de vérification Shopika',
+      html: emailShell({
+        title: 'Votre code de vérification',
+        bodyHtml: `
+          <p>Voici votre code de vérification :</p>
+          <p style="font-size:32px;font-weight:700;letter-spacing:6px">${code}</p>
+          <p style="margin-top:20px">
+            <a href="${FRONT_URL}/verify.html?email=${encodeURIComponent(toEmail)}&amp;code=${encodeURIComponent(code)}"
+               style="display:inline-block;background:#FA1757;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:700;font-size:16px;">
+              Vérifier mon e-mail
+            </a>
+          </p>
+          <p style="color:#666;font-size:14px">Ce code expire dans 10 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>`
+      })
+    });
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[EMAIL DEV - Code de vérification]', { to: toEmail, code });
+      return;
+    }
+    throw err;
+  }
 }
 
 // --- HTML : commande payée → e-mail au marchand ---
