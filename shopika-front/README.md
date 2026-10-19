@@ -1,64 +1,74 @@
-# Shopika — Frontend (branché sur un vrai backend)
+# Shopika — Front Client
 
-Ce frontend ne contient plus aucune donnée de démonstration ni de logique
-"simulée". Toutes les données (comptes, boutiques, produits, commandes,
-favoris) viennent d'un vrai backend que tu héberges toi-même.
+Site vitrine et espace client de la plateforme Shopika. Site statique HTML/JS vanilla, aucune dépendance npm requise.
 
-## Avant de lancer le site
+## État actuel
 
-1. Ouvre `js/config.js` et renseigne l'URL de ton backend :
-   ```js
-   window.SHOPIKA_CONFIG = { API_BASE_URL: "https://api.tondomaine.com/api" };
-   ```
-2. Ton backend doit exposer les routes listées en commentaire en haut de
-   `js/store.js` et `js/auth.js` (contrat exact attendu par ce frontend).
+Toutes les données (comptes, boutiques, produits, commandes, favoris) proviennent d'un vrai backend API. Plus de données de démonstration simulées.
 
-## Comment l'ouvrir
+## Lancer en local
 
-```bash
+```powershell
 cd shopika-front
 python3 -m http.server 8080
+# ou : npx serve .
+# Puis ouvrir : http://localhost:8080/index.html
 ```
-puis http://localhost:8080/index.html — le site interrogera l'API définie
-dans `js/config.js`.
 
-## Ce qui a changé par rapport à la version "démo"
+## Configuration de l'API
 
-- Plus de `localStorage` servant de fausse base de données : les boutiques,
-  produits, commandes et favoris viennent tous de l'API.
-- Plus de boutiques ou produits factices : la marketplace et la page
-  d'accueil restent vides tant qu'aucun marchand n'a publié de boutique
-  réelle — c'est normal et attendu.
-- Les frais de livraison ne sont plus fixés à 1500 F côté client : chaque
-  boutique définit les siens (`shop.shippingFee`, renseigné par le
-  marchand), le panier les additionne une fois par boutique présente.
-- Le mot de passe n'est plus haché dans le navigateur : il est envoyé une
-  fois en HTTPS jusqu'au backend, qui applique bcrypt.
-- Le code de vérification à 6 chiffres est généré et envoyé par e-mail
-  entièrement côté backend (plus d'EmailJS, plus de `js/email.js`).
-- Le bouton **"Créer votre boutique"** n'est relié à aucune page pour
-  l'instant (désactivé volontairement) — à connecter à ta propre page de
-  création de boutique quand elle sera prête.
-- Seul le **panier** reste en `localStorage` : c'est volontaire (une
-  personne doit pouvoir ajouter des articles avant de créer un compte),
-  et il ne contient que des `{productId, quantity}` — jamais de prix,
-  toujours revérifiés contre l'API au moment de payer.
+Le fichier `shopika-front/js/config.js` détecte automatiquement l'URL de l'API :
+
+- `localhost` / `127.0.0.1` → `http://localhost:4000/api`
+- Autre (production) → `https://shopika-api-indol.vercel.app/api`
+
+Aucune modification manuelle requise pour le développement local.
 
 ## Structure
 
 ```
 shopika-front/
-├── index.html, marketplace.html, produit.html, boutique.html   (pages publiques)
-├── inscription.html, verification.html, connexion.html          (authentification)
-├── app/                                                          (espace client, connexion requise)
-│   ├── index.html (tableau de bord), profil.html, parametres.html
-│   ├── panier.html, commandes.html, commande.html, favoris.html
-├── css/    → un fichier par page/composant
+├── index.html              # Accueil / Marketplace
+├── marketplace.html        # Liste des boutiques
+├── produit.html            # Détail produit
+├── boutique.html           # Page d'une boutique
+├── inscription.html        # Création de compte client
+├── verify.html             # Vérification du code e-mail (depuis l'email ou saisie manuelle)
+├── connexion.html          # Connexion client
+├── app/                    # Espace client connecté
+│   ├── index.html          # Tableau de bord client
+│   ├── profil.html         # Profil utilisateur
+│   ├── parametres.html     # Paramètres
+│   ├── panier.html         # Panier
+│   ├── commandes.html      # Historique des commandes
+│   ├── commande.html       # Détail d'une commande
+│   └── favoris.html        # Produits favoris
+├── css/                    # Feuilles de style par page
 ├── js/
-│   ├── config.js       → URL de ton backend (à modifier)
-│   ├── api.js           → client HTTP central (token, erreurs, 401)
-│   ├── store.js          → catalogue / commandes / favoris via l'API + panier local
-│   ├── auth.js            → inscription / vérification / connexion via l'API
-│   ├── i18n.js             → traductions FR/EN + persistance
-│   ├── header.js, app-shell.js, product-card.js  → composants partagés
+│   ├── config.js           # URL de l'API (détection auto localhost/prod)
+│   ├── api.js              # Client HTTP central (token, erreurs, 401)
+│   ├── store.js            # Catalogue / commandes / favoris via l'API + panier localStorage
+│   ├── auth.js             # Inscription / vérification / connexion via l'API
+│   ├── i18n.js             # Traductions FR/EN
+│   ├── header.js           # Composant header partagé
+│   ├── app-shell.js        # Coque d'application
+│   └── product-card.js     # Carte produit
+├── favicon.svg
+├── favicon.ico
+├── package.json
+├── README.md
+└── vercel.json
 ```
+
+## Parcours utilisateur
+
+1. **Inscription** : `inscription.html` → création de compte → code de vérification envoyé par e-mail
+2. **Vérification** : `verify.html` → saisie du code ou lien depuis l'email → compte activé
+3. **Connexion** : `connexion.html` → accès à l'espace client `app/`
+4. **Espace client** : dashboard, profil, panier, commandes, favoris
+
+## Notes
+
+- Le panier reste en `localStorage` (ajout d'articles avant création de compte possible), mais les prix sont toujours revérifiés contre l'API au paiement.
+- Le mot de passe n'est jamais haché côté navigateur ; il est envoyé en HTTPS au backend qui applique bcrypt.
+- Le code de vérification à 6 chiffres est généré et envoyé entièrement côté backend.

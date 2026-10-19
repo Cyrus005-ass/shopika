@@ -50,7 +50,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     window.location.href = "app/index.html";
   } catch (err) {
     if (err.code === "EMAIL_NOT_VERIFIED") {
-      window.location.href = "verification.html?email=" + encodeURIComponent(email);
+      window.location.href = "verify.html?email=" + encodeURIComponent(email);
       return;
     }
     errorBox.textContent = err.message;

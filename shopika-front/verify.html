@@ -20,8 +20,8 @@
     <div id="errorBox" class="auth-error" style="display:none;"></div>
     <div id="infoBox" class="auth-success" style="display:none;"></div>
 
-    <!-- Saisie du code (si pas de code dans l'URL) -->
-    <form id="verifyForm" class="auth-form" style="display:none;">
+    <!-- Saisie du code -->
+    <form id="verifyForm" class="auth-form">
       <div class="auth-field">
         <label>Code de vérification</label>
         <input id="codeInput" class="code-input" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required>
@@ -30,7 +30,7 @@
     </form>
 
     <!-- Compte à rebours + renvoi -->
-    <div class="timer-row" style="display:none;">
+    <div class="timer-row">
       <span id="timerCountdown" class="timer-countdown"></span>
       <button id="resendBtn" class="resend-btn">Renvoyer le code</button>
     </div>
@@ -58,10 +58,18 @@ const verifyForm = document.getElementById("verifyForm");
 const timerRow = document.getElementById("timerRow");
 const resendBtn = document.getElementById("resendBtn");
 
-if (email) emailLabel.textContent = email;
-
 const codeInput = document.getElementById("codeInput");
 const verifyBtn = document.getElementById("verifyBtn");
+
+// Vérifier que l'email est présent
+if (!email) {
+  errorBox.textContent = "Aucune adresse e-mail spécifiée. Veuillez vous inscrire d'abord.";
+  errorBox.style.display = "block";
+  resendBtn.style.display = "none";
+  timerRow.style.display = "none";
+} else {
+  emailLabel.textContent = email;
+}
 
 codeInput.addEventListener("input", () => {
   codeInput.value = codeInput.value.replace(/\D/g, "").slice(0, 6);
@@ -92,6 +100,11 @@ function updateTimerDisplay() {
   }
 }
 
+// Démarrer le timer si on a un email
+if (email) {
+  startTimer(60);
+}
+
 // Si un code est déjà dans l'URL (lien cliqué depuis l'e-mail), on vérifie immédiatement.
 async function tryVerifyFromUrl() {
   if (!email || !codeFromUrl) return;
@@ -103,30 +116,25 @@ async function tryVerifyFromUrl() {
     infoBox.style.display = "block";
     setTimeout(() => { window.location.href = "app/index.html"; }, 1200);
   } catch (err) {
-    errorBox.textContent = err.message || "La vérification a échoué.";
+    errorBox.textContent = err.message || "Le code est invalide ou a expiré.";
     errorBox.style.display = "block";
-    // Afficher le formulaire de saisie pour corriger le code
-    verifyForm.style.display = "block";
-    timerRow.style.display = "block";
-    startTimer(60);
+    // Le formulaire est déjà affiché, l'utilisateur peut saisir un nouveau code
+    verifyBtn.disabled = false;
+    verifyBtn.textContent = "Vérifier";
   }
-}
-
-// Sinon, on affiche le formulaire de saisie normal.
-function showForm() {
-  verifyForm.style.display = "block";
-  timerRow.style.display = "block";
-  startTimer(60);
 }
 
 if (codeFromUrl) {
   tryVerifyFromUrl();
-} else {
-  showForm();
 }
 
 document.getElementById("verifyForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (!email) {
+    errorBox.textContent = "Adresse e-mail manquante.";
+    errorBox.style.display = "block";
+    return;
+  }
   errorBox.style.display = "none";
   infoBox.style.display = "none";
   verifyBtn.disabled = true;
@@ -146,9 +154,9 @@ document.getElementById("verifyForm").addEventListener("submit", async (e) => {
 });
 
 resendBtn.addEventListener("click", async () => {
+  if (!email) return;
   errorBox.style.display = "none";
   infoBox.style.display = "none";
-  if (!email) return;
   resendBtn.disabled = true;
   resendBtn.textContent = "Envoi…";
   try {
