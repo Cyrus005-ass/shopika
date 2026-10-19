@@ -15,10 +15,19 @@
   <div class="auth-card">
     <div class="auth-logo">shop<span class="brandGradientText">ika</span></div>
     <h1 class="auth-title">Vérifiez votre e-mail</h1>
-    <p class="auth-subtitle">Un code à 6 chiffres a été envoyé à <strong id="emailLabel"></strong></p>
+    <p class="auth-subtitle" id="subtitleText">Un code à 6 chiffres a été envoyé à <strong id="emailLabel"></strong></p>
 
     <div id="errorBox" class="auth-error" style="display:none;"></div>
     <div id="infoBox" class="auth-success" style="display:none;"></div>
+
+    <!-- Champ email (affiché uniquement si aucun email dans l'URL) -->
+    <div id="emailInputGroup" class="auth-form" style="display:none;">
+      <div class="auth-field">
+        <label>Adresse e-mail</label>
+        <input id="emailInput" type="email" placeholder="vous@exemple.com" required>
+      </div>
+      <button id="requestCodeBtn" class="auth-submit">Demander un nouveau code</button>
+    </div>
 
     <!-- Saisie du code -->
     <form id="verifyForm" class="auth-form">
@@ -30,13 +39,13 @@
     </form>
 
     <!-- Compte à rebours + renvoi -->
-    <div class="timer-row">
+    <div class="timer-row" style="display:none;">
       <span id="timerCountdown" class="timer-countdown"></span>
       <button id="resendBtn" class="resend-btn">Renvoyer le code</button>
     </div>
 
     <a href="connexion.html" class="back-link">→ Déjà un compte ? Se connecter</a>
-    <a href="inscription.html" class="back-link" style="margin-top:8px;display:block;">← Changer d'adresse e-mail</a>
+    <a href="inscription.html" class="back-link" style="margin-top:8px;display:block;">← Créer un nouveau compte</a>
   </div>
 </main>
 
@@ -49,28 +58,26 @@
 document.documentElement.setAttribute("data-theme", localStorage.getItem("shopika_theme") || "light");
 
 const params = new URLSearchParams(location.search);
-const email = params.get("email");
+const emailFromUrl = params.get("email");
 const codeFromUrl = params.get("code");
 const errorBox = document.getElementById("errorBox");
 const infoBox = document.getElementById("infoBox");
 const emailLabel = document.getElementById("emailLabel");
+const subtitleText = document.getElementById("subtitleText");
 const verifyForm = document.getElementById("verifyForm");
 const timerRow = document.getElementById("timerRow");
 const resendBtn = document.getElementById("resendBtn");
+const emailInputGroup = document.getElementById("emailInputGroup");
+const emailInput = document.getElementById("emailInput");
+const requestCodeBtn = document.getElementById("requestCodeBtn");
 
 const codeInput = document.getElementById("codeInput");
 const verifyBtn = document.getElementById("verifyBtn");
 
-// Vérifier que l'email est présent
-if (!email) {
-  errorBox.textContent = "Aucune adresse e-mail spécifiée. Veuillez vous inscrire d'abord.";
-  errorBox.style.display = "block";
-  resendBtn.style.display = "none";
-  timerRow.style.display = "none";
-} else {
-  emailLabel.textContent = email;
-}
+// Email courant (depuis l'URL ou depuis le champ email)
+let currentEmail = emailFromUrl || null;
 
+// CodeInput listener
 codeInput.addEventListener("input", () => {
   codeInput.value = codeInput.value.replace(/\D/g, "").slice(0, 6);
   verifyBtn.disabled = codeInput.value.length !== 6;
@@ -100,37 +107,46 @@ function updateTimerDisplay() {
   }
 }
 
-// Démarrer le timer si on a un email
-if (email) {
+// Initialisation selon la présence d'un email dans l'URL
+if (emailFromUrl) {
+  currentEmail = emailFromUrl;
+  emailLabel.textContent = emailFromUrl;
   startTimer(60);
+} else {
+  // Aucun email dans l'URL : montrer le champ email pour en redemander un
+  emailInputGroup.style.display = "block";
+  subtitleText.textContent = "Entrez votre adresse e-mail pour recevoir un code de vérification";
+  emailLabel.textContent = "";
+  verifyForm.style.display = "none";
+  timerRow.style.display = "none";
 }
 
 // Si un code est déjà dans l'URL (lien cliqué depuis l'e-mail), on vérifie immédiatement.
 async function tryVerifyFromUrl() {
-  if (!email || !codeFromUrl) return;
+  if (!currentEmail || !codeFromUrl) return;
   verifyBtn.disabled = true;
   verifyBtn.textContent = "Vérification…";
   try {
-    await Auth.verifyEmail({ email, code: codeFromUrl });
+    await Auth.verifyEmail({ email: currentEmail, code: codeFromUrl });
     infoBox.textContent = "E-mail vérifié avec succès. Redirection…";
     infoBox.style.display = "block";
     setTimeout(() => { window.location.href = "app/index.html"; }, 1200);
   } catch (err) {
     errorBox.textContent = err.message || "Le code est invalide ou a expiré.";
     errorBox.style.display = "block";
-    // Le formulaire est déjà affiché, l'utilisateur peut saisir un nouveau code
     verifyBtn.disabled = false;
     verifyBtn.textContent = "Vérifier";
   }
 }
 
-if (codeFromUrl) {
+if (codeFromUrl && emailFromUrl) {
   tryVerifyFromUrl();
 }
 
+// Soumission du formulaire de vérification du code
 document.getElementById("verifyForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  if (!email) {
+  if (!currentEmail) {
     errorBox.textContent = "Adresse e-mail manquante.";
     errorBox.style.display = "block";
     return;
@@ -140,7 +156,7 @@ document.getElementById("verifyForm").addEventListener("submit", async (e) => {
   verifyBtn.disabled = true;
   verifyBtn.textContent = "Vérification…";
   try {
-    await Auth.verifyEmail({ email, code: codeInput.value });
+    await Auth.verifyEmail({ email: currentEmail, code: codeInput.value });
     infoBox.textContent = "E-mail vérifié avec succès. Redirection…";
     infoBox.style.display = "block";
     setTimeout(() => { window.location.href = "app/index.html"; }, 1200);
@@ -153,14 +169,48 @@ document.getElementById("verifyForm").addEventListener("submit", async (e) => {
   }
 });
 
+// Bouton "Demander un nouveau code" (quand pas d'email dans l'URL)
+requestCodeBtn.addEventListener("click", async () => {
+  const enteredEmail = emailInput.value.trim();
+  if (!enteredEmail) {
+    errorBox.textContent = "Veuillez entrer votre adresse e-mail.";
+    errorBox.style.display = "block";
+    return;
+  }
+  errorBox.style.display = "none";
+  infoBox.style.display = "none";
+  requestCodeBtn.disabled = true;
+  requestCodeBtn.textContent = "Envoi…";
+  try {
+    await Auth.resendCode(enteredEmail);
+    currentEmail = enteredEmail;
+    emailLabel.textContent = enteredEmail;
+    subtitleText.textContent = "Un code à 6 chiffres a été envoyé à";
+    emailInputGroup.style.display = "none";
+    verifyForm.style.display = "block";
+    timerRow.style.display = "block";
+    startTimer(60);
+    infoBox.textContent = "Un nouveau code vient d'être envoyé.";
+    infoBox.style.display = "block";
+  } catch (err) {
+    errorBox.textContent = err.message;
+    errorBox.style.display = "block";
+    if (err.secondsRemaining) startTimer(err.secondsRemaining);
+  } finally {
+    requestCodeBtn.disabled = false;
+    requestCodeBtn.textContent = "Demander un nouveau code";
+  }
+});
+
+// Bouton "Renvoyer le code" (quand email déjà connu)
 resendBtn.addEventListener("click", async () => {
-  if (!email) return;
+  if (!currentEmail) return;
   errorBox.style.display = "none";
   infoBox.style.display = "none";
   resendBtn.disabled = true;
   resendBtn.textContent = "Envoi…";
   try {
-    await Auth.resendCode(email);
+    await Auth.resendCode(currentEmail);
     infoBox.textContent = "Un nouveau code vient d'être envoyé.";
     infoBox.style.display = "block";
     codeInput.value = "";
