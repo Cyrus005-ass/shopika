@@ -40,7 +40,9 @@ async function apiFetch(path, { method = "GET", body, auth = true } = {}) {
   }
 
   // Session expirée ou invalide : on déconnecte proprement.
-  if (res.status === 401 && auth) {
+  // Les pages publiques (inscription, connexion, verify) ne déclenchent pas cette redirection.
+  const isPublicPage = /\/(inscription|connexion|verify)\.html/.test(location.pathname);
+  if (res.status === 401 && auth && !isPublicPage) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_CACHE_KEY);
     const isApp = location.pathname.includes("/app/");
@@ -55,6 +57,7 @@ async function apiFetch(path, { method = "GET", body, auth = true } = {}) {
     const err = new Error((data && data.message) || "Une erreur est survenue.");
     if (data && data.code) err.code = data.code;
     if (data && data.secondsRemaining) err.secondsRemaining = data.secondsRemaining;
+    if (data && data.expired) err.expired = data.expired;
     err.status = res.status;
     throw err;
   }

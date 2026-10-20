@@ -64,6 +64,14 @@ router.post('/orders/:orderId/pay', requireAuth, async (req, res) => {
 // navigateur (callback_url), qui peut être manipulée ou simplement ratée.
 // ===================================================================
 router.post('/webhook', async (req, res) => {
+  // Vérifie que le secret webhook est configuré (pas vide, pas placeholder)
+  if (!process.env.FEDAPAY_WEBHOOK_SECRET ||
+      process.env.FEDAPAY_WEBHOOK_SECRET === 'your_live_webhook_secret_here' ||
+      process.env.FEDAPAY_WEBHOOK_SECRET === 'wh_sandbox_...') {
+    console.error('FEDAPAY_WEBHOOK_SECRET non configuré');
+    return res.status(500).json({ error: 'Webhook non configuré sur le serveur' });
+  }
+
   let event;
   try {
     const signature = req.headers['x-fedapay-signature'];

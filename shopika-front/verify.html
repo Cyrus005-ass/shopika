@@ -128,9 +128,19 @@ async function tryVerifyFromUrl() {
   verifyBtn.textContent = "Vérification…";
   try {
     await Auth.verifyEmail({ email: currentEmail, code: codeFromUrl });
+    const user = JSON.parse(localStorage.getItem('shopika_user') || '{}');
     infoBox.textContent = "E-mail vérifié avec succès. Redirection…";
     infoBox.style.display = "block";
-    setTimeout(() => { window.location.href = "app/index.html"; }, 1200);
+    setTimeout(() => {
+      if (user.role === 'marchand') {
+        window.location.href = window.SHOPIKA_CONFIG.MERCHANT_APP_URL + '/index.html';
+      } else if (user.role === 'admin') {
+        // Pas de redirection automatique pour les admins
+        infoBox.textContent = "E-mail vérifié avec succès. Veuillez vous connecter depuis l'espace admin.";
+      } else {
+        window.location.href = "app/index.html";
+      }
+    }, 1200);
   } catch (err) {
     errorBox.textContent = err.message || "Le code est invalide ou a expiré.";
     errorBox.style.display = "block";
@@ -157,9 +167,18 @@ document.getElementById("verifyForm").addEventListener("submit", async (e) => {
   verifyBtn.textContent = "Vérification…";
   try {
     await Auth.verifyEmail({ email: currentEmail, code: codeInput.value });
+    const user = JSON.parse(localStorage.getItem('shopika_user') || '{}');
     infoBox.textContent = "E-mail vérifié avec succès. Redirection…";
     infoBox.style.display = "block";
-    setTimeout(() => { window.location.href = "app/index.html"; }, 1200);
+    setTimeout(() => {
+      if (user.role === 'marchand') {
+        window.location.href = window.SHOPIKA_CONFIG.MERCHANT_APP_URL + '/index.html';
+      } else if (user.role === 'admin') {
+        infoBox.textContent = "E-mail vérifié avec succès. Veuillez vous connecter depuis l'espace admin.";
+      } else {
+        window.location.href = "app/index.html";
+      }
+    }, 1200);
   } catch (err) {
     errorBox.textContent = err.message;
     errorBox.style.display = "block";
