@@ -24,24 +24,24 @@
     <div id="emailInputGroup" class="auth-form" style="display:none;">
       <div class="auth-field">
         <label>Adresse e-mail</label>
-        <input id="emailInput" type="email" placeholder="vous@exemple.com" required>
+        <input id="emailInput" name="email" type="email" placeholder="vous@exemple.com" required>
       </div>
-      <button id="requestCodeBtn" class="auth-submit">Demander un nouveau code</button>
+      <button id="requestCodeBtn" class="auth-submit" type="button">Demander un nouveau code</button>
     </div>
 
     <!-- Saisie du code -->
-    <form id="verifyForm" class="auth-form">
+    <form id="verifyForm" class="auth-form" action="javascript:void(0);" method="post" novalidate>
       <div class="auth-field">
         <label>Code de vérification</label>
-        <input id="codeInput" class="code-input" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required>
+        <input id="codeInput" name="code" class="code-input" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required>
       </div>
-      <button id="verifyBtn" class="auth-submit" disabled>Vérifier</button>
+      <button id="verifyBtn" class="auth-submit" type="submit" disabled>Vérifier</button>
     </form>
 
     <!-- Compte à rebours + renvoi -->
     <div class="timer-row" style="display:none;">
       <span id="timerCountdown" class="timer-countdown"></span>
-      <button id="resendBtn" class="resend-btn">Renvoyer le code</button>
+      <button id="resendBtn" class="resend-btn" type="button">Renvoyer le code</button>
     </div>
 
     <a href="connexion.html" class="back-link">→ Déjà un compte ? Se connecter</a>
@@ -55,195 +55,245 @@
 <script src="js/i18n.js"></script>
 <script src="js/auth.js"></script>
 <script>
-document.documentElement.setAttribute("data-theme", localStorage.getItem("shopika_theme") || "light");
+document.addEventListener('DOMContentLoaded', function() {
+  document.documentElement.setAttribute("data-theme", localStorage.getItem("shopika_theme") || "light");
 
-const params = new URLSearchParams(location.search);
-const emailFromUrl = params.get("email");
-const codeFromUrl = params.get("code");
-const errorBox = document.getElementById("errorBox");
-const infoBox = document.getElementById("infoBox");
-const emailLabel = document.getElementById("emailLabel");
-const subtitleText = document.getElementById("subtitleText");
-const verifyForm = document.getElementById("verifyForm");
-const timerRow = document.getElementById("timerRow");
-const resendBtn = document.getElementById("resendBtn");
-const emailInputGroup = document.getElementById("emailInputGroup");
-const emailInput = document.getElementById("emailInput");
-const requestCodeBtn = document.getElementById("requestCodeBtn");
-
-const codeInput = document.getElementById("codeInput");
-const verifyBtn = document.getElementById("verifyBtn");
-
-// Email courant (depuis l'URL ou depuis le champ email)
-let currentEmail = emailFromUrl || null;
-
-// CodeInput listener
-codeInput.addEventListener("input", () => {
-  codeInput.value = codeInput.value.replace(/\D/g, "").slice(0, 6);
-  verifyBtn.disabled = codeInput.value.length !== 6;
+  try {
+    initVerifyPage();
+  } catch (err) {
+    console.error('verify.html init error:', err);
+    const errorBox = document.getElementById("errorBox");
+    if (errorBox) {
+      errorBox.textContent = "Une erreur est survenue lors du chargement de la page.";
+      errorBox.style.display = "block";
+    }
+  }
 });
 
-let secondsLeft = 60;
-let timerId = null;
-function startTimer(seconds) {
-  secondsLeft = seconds;
-  clearInterval(timerId);
-  updateTimerDisplay();
-  timerId = setInterval(() => {
-    secondsLeft--;
+function initVerifyPage() {
+  const params = new URLSearchParams(location.search);
+  const emailFromUrl = params.get("email");
+  const codeFromUrl = params.get("code");
+  const errorBox = document.getElementById("errorBox");
+  const infoBox = document.getElementById("infoBox");
+  const emailLabel = document.getElementById("emailLabel");
+  const subtitleText = document.getElementById("subtitleText");
+  const verifyForm = document.getElementById("verifyForm");
+  const timerRow = document.getElementById("timerRow");
+  const resendBtn = document.getElementById("resendBtn");
+  const emailInputGroup = document.getElementById("emailInputGroup");
+  const emailInput = document.getElementById("emailInput");
+  const requestCodeBtn = document.getElementById("requestCodeBtn");
+
+  const codeInput = document.getElementById("codeInput");
+  const verifyBtn = document.getElementById("verifyBtn");
+
+  // Email courant (depuis l'URL ou depuis le champ email)
+  let currentEmail = emailFromUrl || null;
+
+  // CodeInput listener
+  if (codeInput) {
+    codeInput.addEventListener("input", function() {
+      codeInput.value = codeInput.value.replace(/\D/g, "").slice(0, 6);
+      if (verifyBtn) verifyBtn.disabled = codeInput.value.length !== 6;
+    });
+  }
+
+  let secondsLeft = 60;
+  let timerId = null;
+  function startTimer(seconds) {
+    secondsLeft = seconds;
+    clearInterval(timerId);
     updateTimerDisplay();
-    if (secondsLeft <= 0) clearInterval(timerId);
-  }, 1000);
-}
-function updateTimerDisplay() {
-  if (secondsLeft > 0) {
-    timerRow.style.display = "block";
-    document.getElementById("timerCountdown").textContent = `Vous pourrez demander un nouveau code dans ${secondsLeft}s`;
-    resendBtn.style.display = "none";
+    timerId = setInterval(function() {
+      secondsLeft--;
+      updateTimerDisplay();
+      if (secondsLeft <= 0) clearInterval(timerId);
+    }, 1000);
+  }
+  function updateTimerDisplay() {
+    if (secondsLeft > 0) {
+      timerRow.style.display = "block";
+      document.getElementById("timerCountdown").textContent = `Vous pourrez demander un nouveau code dans ${secondsLeft}s`;
+      resendBtn.style.display = "none";
+    } else {
+      timerRow.style.display = "block";
+      document.getElementById("timerCountdown").style.display = "none";
+      resendBtn.style.display = "inline";
+    }
+  }
+
+  // Initialisation selon la présence d'un email dans l'URL
+  if (emailFromUrl) {
+    currentEmail = emailFromUrl;
+    if (emailLabel) emailLabel.textContent = emailFromUrl;
+    startTimer(60);
   } else {
-    timerRow.style.display = "block";
-    document.getElementById("timerCountdown").style.display = "none";
-    resendBtn.style.display = "inline";
+    // Aucun email dans l'URL : montrer le champ email pour en redemander un
+    if (emailInputGroup) emailInputGroup.style.display = "block";
+    if (subtitleText) subtitleText.textContent = "Entrez votre adresse e-mail pour recevoir un code de vérification";
+    if (emailLabel) emailLabel.textContent = "";
+    if (verifyForm) verifyForm.style.display = "none";
+    if (timerRow) timerRow.style.display = "none";
   }
-}
 
-// Initialisation selon la présence d'un email dans l'URL
-if (emailFromUrl) {
-  currentEmail = emailFromUrl;
-  emailLabel.textContent = emailFromUrl;
-  startTimer(60);
-} else {
-  // Aucun email dans l'URL : montrer le champ email pour en redemander un
-  emailInputGroup.style.display = "block";
-  subtitleText.textContent = "Entrez votre adresse e-mail pour recevoir un code de vérification";
-  emailLabel.textContent = "";
-  verifyForm.style.display = "none";
-  timerRow.style.display = "none";
-}
-
-// Si un code est déjà dans l'URL (lien cliqué depuis l'e-mail), on vérifie immédiatement.
-async function tryVerifyFromUrl() {
-  if (!currentEmail || !codeFromUrl) return;
-  verifyBtn.disabled = true;
-  verifyBtn.textContent = "Vérification…";
-  try {
-    await Auth.verifyEmail({ email: currentEmail, code: codeFromUrl });
-    const user = JSON.parse(localStorage.getItem('shopika_user') || '{}');
-    infoBox.textContent = "E-mail vérifié avec succès. Redirection…";
-    infoBox.style.display = "block";
-    setTimeout(() => {
-      if (user.role === 'marchand') {
-        window.location.href = window.SHOPIKA_CONFIG.MERCHANT_APP_URL + '/index.html';
-      } else if (user.role === 'admin') {
-        // Pas de redirection automatique pour les admins
-        infoBox.textContent = "E-mail vérifié avec succès. Veuillez vous connecter depuis l'espace admin.";
-      } else {
-        window.location.href = "app/index.html";
+  // Si un code est déjà dans l'URL (lien cliqué depuis l'e-mail), on vérifie immédiatement.
+  async function tryVerifyFromUrl() {
+    if (!currentEmail || !codeFromUrl) return;
+    if (verifyBtn) {
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = "Vérification…";
+    }
+    try {
+      await Auth.verifyEmail({ email: currentEmail, code: codeFromUrl });
+      const user = JSON.parse(localStorage.getItem('shopika_user') || '{}');
+      if (infoBox) {
+        infoBox.textContent = "E-mail vérifié avec succès. Redirection…";
+        infoBox.style.display = "block";
       }
-    }, 1200);
-  } catch (err) {
-    errorBox.textContent = err.message || "Le code est invalide ou a expiré.";
-    errorBox.style.display = "block";
-    verifyBtn.disabled = false;
-    verifyBtn.textContent = "Vérifier";
-  }
-}
-
-if (codeFromUrl && emailFromUrl) {
-  tryVerifyFromUrl();
-}
-
-// Soumission du formulaire de vérification du code
-document.getElementById("verifyForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!currentEmail) {
-    errorBox.textContent = "Adresse e-mail manquante.";
-    errorBox.style.display = "block";
-    return;
-  }
-  errorBox.style.display = "none";
-  infoBox.style.display = "none";
-  verifyBtn.disabled = true;
-  verifyBtn.textContent = "Vérification…";
-  try {
-    await Auth.verifyEmail({ email: currentEmail, code: codeInput.value });
-    const user = JSON.parse(localStorage.getItem('shopika_user') || '{}');
-    infoBox.textContent = "E-mail vérifié avec succès. Redirection…";
-    infoBox.style.display = "block";
-    setTimeout(() => {
-      if (user.role === 'marchand') {
-        window.location.href = window.SHOPIKA_CONFIG.MERCHANT_APP_URL + '/index.html';
-      } else if (user.role === 'admin') {
-        infoBox.textContent = "E-mail vérifié avec succès. Veuillez vous connecter depuis l'espace admin.";
-      } else {
-        window.location.href = "app/index.html";
+      setTimeout(function() {
+        if (user.role === 'marchand') {
+          window.location.href = window.SHOPIKA_CONFIG.MERCHANT_APP_URL + '/index.html';
+        } else if (user.role === 'admin') {
+          if (infoBox) infoBox.textContent = "E-mail vérifié avec succès. Veuillez vous connecter depuis l'espace admin.";
+        } else {
+          window.location.href = "app/index.html";
+        }
+      }, 1200);
+    } catch (err) {
+      if (errorBox) {
+        errorBox.textContent = err.message || "Le code est invalide ou a expiré.";
+        errorBox.style.display = "block";
       }
-    }, 1200);
-  } catch (err) {
-    errorBox.textContent = err.message;
-    errorBox.style.display = "block";
-    if (err.expired) startTimer(0);
-    verifyBtn.disabled = codeInput.value.length !== 6;
-    verifyBtn.textContent = "Vérifier";
+      if (verifyBtn) {
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = "Vérifier";
+      }
+    }
   }
-});
 
-// Bouton "Demander un nouveau code" (quand pas d'email dans l'URL)
-requestCodeBtn.addEventListener("click", async () => {
-  const enteredEmail = emailInput.value.trim();
-  if (!enteredEmail) {
-    errorBox.textContent = "Veuillez entrer votre adresse e-mail.";
-    errorBox.style.display = "block";
-    return;
+  if (codeFromUrl && emailFromUrl) {
+    tryVerifyFromUrl();
   }
-  errorBox.style.display = "none";
-  infoBox.style.display = "none";
-  requestCodeBtn.disabled = true;
-  requestCodeBtn.textContent = "Envoi…";
-  try {
-    await Auth.resendCode(enteredEmail);
-    currentEmail = enteredEmail;
-    emailLabel.textContent = enteredEmail;
-    subtitleText.textContent = "Un code à 6 chiffres a été envoyé à";
-    emailInputGroup.style.display = "none";
-    verifyForm.style.display = "block";
-    timerRow.style.display = "block";
-    startTimer(60);
-    infoBox.textContent = "Un nouveau code vient d'être envoyé.";
-    infoBox.style.display = "block";
-  } catch (err) {
-    errorBox.textContent = err.message;
-    errorBox.style.display = "block";
-    if (err.secondsRemaining) startTimer(err.secondsRemaining);
-  } finally {
-    requestCodeBtn.disabled = false;
-    requestCodeBtn.textContent = "Demander un nouveau code";
-  }
-});
 
-// Bouton "Renvoyer le code" (quand email déjà connu)
-resendBtn.addEventListener("click", async () => {
-  if (!currentEmail) return;
-  errorBox.style.display = "none";
-  infoBox.style.display = "none";
-  resendBtn.disabled = true;
-  resendBtn.textContent = "Envoi…";
-  try {
-    await Auth.resendCode(currentEmail);
-    infoBox.textContent = "Un nouveau code vient d'être envoyé.";
-    infoBox.style.display = "block";
-    codeInput.value = "";
-    verifyBtn.disabled = true;
-    startTimer(60);
-  } catch (err) {
-    errorBox.textContent = err.message;
-    errorBox.style.display = "block";
-    if (err.secondsRemaining) startTimer(err.secondsRemaining);
-  } finally {
-    resendBtn.disabled = false;
-    resendBtn.textContent = "Renvoyer le code";
+  // Soumission du formulaire de vérification du code
+  if (verifyForm) {
+    verifyForm.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      if (!currentEmail) {
+        if (errorBox) {
+          errorBox.textContent = "Adresse e-mail manquante.";
+          errorBox.style.display = "block";
+        }
+        return;
+      }
+      if (errorBox) errorBox.style.display = "none";
+      if (infoBox) infoBox.style.display = "none";
+      if (verifyBtn) {
+        verifyBtn.disabled = true;
+        verifyBtn.textContent = "Vérification…";
+      }
+      try {
+        await Auth.verifyEmail({ email: currentEmail, code: codeInput.value });
+        const user = JSON.parse(localStorage.getItem('shopika_user') || '{}');
+        if (infoBox) {
+          infoBox.textContent = "E-mail vérifié avec succès. Redirection…";
+          infoBox.style.display = "block";
+        }
+        setTimeout(function() {
+          if (user.role === 'marchand') {
+            window.location.href = window.SHOPIKA_CONFIG.MERCHANT_APP_URL + '/index.html';
+          } else if (user.role === 'admin') {
+            if (infoBox) infoBox.textContent = "E-mail vérifié avec succès. Veuillez vous connecter depuis l'espace admin.";
+          } else {
+            window.location.href = "app/index.html";
+          }
+        }, 1200);
+      } catch (err) {
+        if (errorBox) {
+          errorBox.textContent = err.message;
+          errorBox.style.display = "block";
+        }
+        if (err.expired) startTimer(0);
+        if (verifyBtn) {
+          verifyBtn.disabled = codeInput.value.length !== 6;
+          verifyBtn.textContent = "Vérifier";
+        }
+      }
+    });
   }
-});
+
+  // Bouton "Demander un nouveau code" (quand pas d'email dans l'URL)
+  if (requestCodeBtn) {
+    requestCodeBtn.addEventListener("click", async function() {
+      const enteredEmail = emailInput.value.trim();
+      if (!enteredEmail) {
+        if (errorBox) {
+          errorBox.textContent = "Veuillez entrer votre adresse e-mail.";
+          errorBox.style.display = "block";
+        }
+        return;
+      }
+      if (errorBox) errorBox.style.display = "none";
+      if (infoBox) infoBox.style.display = "none";
+      requestCodeBtn.disabled = true;
+      requestCodeBtn.textContent = "Envoi…";
+      try {
+        await Auth.resendCode(enteredEmail);
+        currentEmail = enteredEmail;
+        if (emailLabel) emailLabel.textContent = enteredEmail;
+        if (subtitleText) subtitleText.textContent = "Un code à 6 chiffres a été envoyé à";
+        if (emailInputGroup) emailInputGroup.style.display = "none";
+        if (verifyForm) verifyForm.style.display = "block";
+        if (timerRow) timerRow.style.display = "block";
+        startTimer(60);
+        if (infoBox) {
+          infoBox.textContent = "Un nouveau code vient d'être envoyé.";
+          infoBox.style.display = "block";
+        }
+      } catch (err) {
+        if (errorBox) {
+          errorBox.textContent = err.message;
+          errorBox.style.display = "block";
+        }
+        if (err.secondsRemaining) startTimer(err.secondsRemaining);
+      } finally {
+        requestCodeBtn.disabled = false;
+        requestCodeBtn.textContent = "Demander un nouveau code";
+      }
+    });
+  }
+
+  // Bouton "Renvoyer le code" (quand email déjà connu)
+  if (resendBtn) {
+    resendBtn.addEventListener("click", async function() {
+      if (!currentEmail) return;
+      if (errorBox) errorBox.style.display = "none";
+      if (infoBox) infoBox.style.display = "none";
+      resendBtn.disabled = true;
+      resendBtn.textContent = "Envoi…";
+      try {
+        await Auth.resendCode(currentEmail);
+        if (infoBox) {
+          infoBox.textContent = "Un nouveau code vient d'être envoyé.";
+          infoBox.style.display = "block";
+        }
+        if (codeInput) codeInput.value = "";
+        if (verifyBtn) verifyBtn.disabled = true;
+        startTimer(60);
+      } catch (err) {
+        if (errorBox) {
+          errorBox.textContent = err.message;
+          errorBox.style.display = "block";
+        }
+        if (err.secondsRemaining) startTimer(err.secondsRemaining);
+      } finally {
+        resendBtn.disabled = false;
+        resendBtn.textContent = "Renvoyer le code";
+      }
+    });
+  }
+}
 </script>
 </body>
 </html>

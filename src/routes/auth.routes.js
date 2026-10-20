@@ -5,7 +5,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const requireAuth = require('../middleware/auth');
-const requireRole = require('../middleware/requireRole');
 const { sendError } = require('../lib/http');
 router.post('/test-post-error', (req, res) => { console.log('[test-post-error] handler called'); return sendError(res, 400, 'test post error'); });
 router.get('/test-error', (req, res) => { console.log('[test-error] handler called'); return sendError(res, 400, 'test error'); });router.post('/test-post-error', (req, res) => { console.log('[test-post-error] handler called'); return sendError(res, 400, 'test post error'); });
@@ -450,112 +449,6 @@ router.post('/become-merchant', requireAuth, async (req, res) => {
       token: issueToken(updatedUser),
       user: publicUser(updatedUser),
       store
-    });
-  } catch (err) {
-    console.error(err);
-    return sendError(res, 500, 'Erreur serveur');
-  }
-});
-
-// ===================================================================
-// GET /api/auth/admin-exists — vérifie si un admin existe déjà
-// (utilisé par le front pour afficher/masquer le formulaire premier admin)
-// ===================================================================
-router.get('/admin-exists', async (req, res) => {
-  try {
-    const admin = await prisma.user.findFirst({ where: { role: 'admin' } });
-    return res.json({ exists: !!admin });
-  } catch (err) {
-    console.error(err);
-    return sendError(res, 500, 'Erreur serveur');
-  }
-});
-
-// ===================================================================
-// POST /api/auth/create-first-admin — crée le premier admin
-// Aucun token requis. Bloqué si un admin existe déjà.
-// ===================================================================
-router.post('/create-first-admin', async (req, res) => {
-  try {
-    const { fullName, phone, password } = req.body;
-
-    if (!fullName || !phone || !password) {
-      return sendError(res, 400, 'Nom complet, téléphone et mot de passe requis');
-    }
-
-    if (password.length < 6) {
-      return sendError(res, 400, 'Le mot de passe doit contenir au moins 6 caractères');
-    }
-
-    // Empêche la création si un admin existe déjà
-    const existingAdmin = await prisma.user.findFirst({ where: { role: 'admin' } });
-    if (existingAdmin) {
-      return sendError(res, 403, 'Un administrateur existe déjà');
-    }
-
-    // Le téléphone doit être unique
-    const phoneTaken = await prisma.user.findFirst({ where: { phone } });
-    if (phoneTaken) {
-      return sendError(res, 409, 'Ce numéro est déjà utilisé par un autre compte');
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: {
-        phone,
-        fullName,
-        passwordHash,
-        role: 'admin',
-        emailVerified: true
-      }
-    });
-
-    const token = issueToken(user);
-    return res.status(201).json({
-      token,
-      user: publicUser(user),
-      message: 'Premier administrateur créé avec succès'
-    });
-  } catch (err) {
-    console.error(err);
-    return sendError(res, 500, 'Erreur serveur');
-  }
-});
-
-// ===================================================================
-// POST /api/auth/create-admin — crée un autre admin (réservé aux admins)
-// ===================================================================
-router.post('/create-admin', requireAuth, requireRole('admin'), async (req, res) => {
-  try {
-    const { fullName, phone, password } = req.body;
-
-    if (!fullName || !phone || !password) {
-      return sendError(res, 400, 'Nom complet, téléphone et mot de passe requis');
-    }
-
-    if (password.length < 6) {
-      return sendError(res, 400, 'Le mot de passe doit contenir au moins 6 caractères');
-    }
-
-    const phoneTaken = await prisma.user.findFirst({ where: { phone } });
-    if (phoneTaken) {
-      return sendError(res, 409, 'Ce numéro est déjà utilisé par un autre compte');
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: {
-        phone,
-        fullName,
-        passwordHash,
-        role: 'admin',
-        emailVerified: true
-      }
-    });
-
-    return res.status(201).json({
-      user: publicUser(user),
-      message: 'Administrateur créé avec succès'
     });
   } catch (err) {
     console.error(err);

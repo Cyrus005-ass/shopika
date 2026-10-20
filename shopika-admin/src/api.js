@@ -43,11 +43,6 @@ export const authApi = {
   login: (phone, password) => api.post('/auth/login', { phone, password }),
   changePassword: (currentPassword, newPassword) =>
     api.post('/auth/change-password', { currentPassword, newPassword }),
-  adminExists: () => api.get('/auth/admin-exists'),
-  createFirstAdmin: (fullName, phone, password) =>
-    api.post('/auth/create-first-admin', { fullName, phone, password }),
-  createAdmin: (fullName, phone, password) =>
-    api.post('/auth/create-admin', { fullName, phone, password }),
 };
 
 // Admin
