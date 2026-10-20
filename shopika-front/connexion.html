@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -50,7 +50,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     window.location.href = "app/index.html";
   } catch (err) {
     if (err.code === "EMAIL_NOT_VERIFIED") {
-      window.location.href = "verify.html?email=" + encodeURIComponent(email);
+      window.location.href = "verification.html?email=" + encodeURIComponent(email);
       return;
     }
     errorBox.textContent = err.message;
@@ -62,3 +62,4 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
 </script>
 </body>
 </html>
+

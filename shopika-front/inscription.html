@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -55,7 +55,7 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
       email: document.getElementById("email").value.trim(),
       password: document.getElementById("password").value,
     });
-    window.location.href = "verify.html?email=" + encodeURIComponent(email);
+    window.location.href = "verification.html?email=" + encodeURIComponent(email);
   } catch (err) {
     errorBox.textContent = err.message;
     errorBox.style.display = "block";
@@ -66,4 +66,5 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
 </script>
 </body>
 </html>
+
 
