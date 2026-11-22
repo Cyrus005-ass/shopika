@@ -139,5 +139,5 @@ startChild(
   path.join(root, 'shopika-admin'),
   'Admin'
 );
-serveStatic(path.join(root, 'shopika-front'), 3000, 'Client');
-serveStatic(path.join(root, 'SHOPIKA_marchand'), 5500, 'Merchant');
+serveStatic(path.join(root, 'apps', 'web'), 3000, 'Client');
+serveStatic(path.join(root, 'apps', 'merchant'), 5500, 'Merchant');

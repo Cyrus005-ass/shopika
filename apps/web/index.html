@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopika — Shop smart, live better</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-darkbg-32.png?v=2">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
+<script src="js/favicon.js"></script>
+<script src="js/update-manager.js" data-sw="../sw.js" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/globals.css">
+<link rel="stylesheet" href="css/motion.css">
+<link rel="stylesheet" href="css/header.css">
+<link rel="stylesheet" href="css/product-card.css">
+<link rel="stylesheet" href="css/home.css">
+<script>document.documentElement.classList.add("js")</script>
+<script src="js/motion.js"></script>
+</head>
+<body>
+
+<div id="site-header"></div>
+
+<main>
+  <section class="hero">
+    <div class="hero-inner">
+      <div>
+        <span class="eyebrow" data-i18n="heroEyebrow">✦ Nouveau : paiement en un clic</span>
+        <h1 class="hero-title"><span data-i18n="heroTitlePrefix">Votre boutique démarre avec</span> <span class="brandGradientText">Shopika</span></h1>
+        <p class="hero-lead" data-i18n="heroLead">Créez, personnalisez et gérez votre commerce en ligne en quelques minutes.</p>
+        <div class="hero-cta-row">
+          <a href="inscription.html" class="hero-cta" data-i18n="ctaStart">Inscrivez-vous gratuitement</a>
+          <a href="marketplace.html" class="hero-cta-outline" data-i18n="heroExplore">Explorer</a>
+          <a href="#" class="hero-cta-outline" data-create-shop data-i18n="ctaCreateShopBtn">Créer ma boutique</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="photo-card hv-main">
+          <div class="stat-chip">
+            <div class="stat-chip-label"><span class="live-dot"></span><span data-i18n="heroStatLabel">Ventes en direct</span></div>
+            <div class="stat-chip-value" id="liveSales">0 FCFA</div>
+          </div>
+          <img src="https://images.pexels.com/photos/36730469/pexels-photo-36730469.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Propriétaire de boutique gérant sa vitrine en ligne">
+        </div>
+        <div class="photo-card hv-mini" id="orderToast">
+          <div class="hv-mini-badge">✓</div>
+          <div>
+            <div class="hv-mini-title" data-i18n="heroOrderTitle">Nouvelle commande</div>
+            <div class="hv-mini-sub" id="orderToastSub">Awa · Dakar · +25 000 FCFA</div>
+          </div>
+        </div>
+        <div class="photo-card hv-pay">
+          <div class="hv-pay-badge">₣</div>
+          <div>
+            <div class="hv-mini-title" data-i18n="heroPayTitle">Paiement reçu</div>
+            <div class="hv-mini-sub" data-i18n="heroPaySub">Mobile money</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="trust" id="trustSection" hidden>
+    <div class="wrap">
+      <p class="trust-label" data-i18n="trustLabel">Ils vendent déjà avec Shopika</p>
+      <div class="trust-row" id="trustRow"></div>
+    </div>
+  </section>
+
+  <section class="section how" id="comment">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <h2 data-i18n="howTitle">Lancez votre boutique en trois étapes</h2>
+        <p data-i18n="howSub">Pas besoin de savoir coder. Vous pouvez être en ligne dès aujourd'hui.</p>
+      </div>
+      <ol class="steps" id="steps">
+        <span class="steps-line" aria-hidden="true"></span>
+        <li class="step"><span class="step-num">1</span><h3 data-i18n="step1Title">Créez votre compte</h3><p data-i18n="step1Desc">Inscrivez-vous gratuitement avec votre e-mail.</p></li>
+        <li class="step"><span class="step-num">2</span><h3 data-i18n="step2Title">Choisissez un thème</h3><p data-i18n="step2Desc">Ajoutez vos produits, vos couleurs et votre logo.</p></li>
+        <li class="step"><span class="step-num">3</span><h3 data-i18n="step3Title">Encaissez vos premières ventes</h3><p data-i18n="step3Desc">Vos clients paient par mobile money, carte ou virement.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="fonctionnalites">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <h2 data-i18n="featuresTitle">Une boutique qui vous ressemble, prête en quelques minutes</h2>
+        <p data-i18n="featuresSub">Des modèles pensés pour vendre, une prise en main simple.</p>
+      </div>
+      <div class="grid3" data-stagger>
+        <div class="card">
+          <div class="card-photo"><img src="https://images.pexels.com/photos/7857563/pexels-photo-7857563.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Boutique de mode"></div>
+          <div class="card-body"><h3 data-i18n="feature1Title">Design sur-mesure</h3><p data-i18n="feature1Desc">Choisissez un thème, personnalisez couleurs et polices.</p></div>
+        </div>
+        <div class="card">
+          <div class="card-photo"><img src="https://images.pexels.com/photos/6207729/pexels-photo-6207729.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Paiement en ligne"></div>
+          <div class="card-body"><h3 data-i18n="feature2Title">Paiements simplifiés</h3><p data-i18n="feature2Desc">Acceptez mobile money, carte bancaire et virement.</p></div>
+        </div>
+        <div class="card">
+          <div class="card-photo"><img src="https://images.pexels.com/photos/7857540/pexels-photo-7857540.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Préparation de colis"></div>
+          <div class="card-body"><h3 data-i18n="feature3Title">Vente partout</h3><p data-i18n="feature3Desc">Connectez votre catalogue aux réseaux sociaux.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0;">
+    <div class="wrap">
+      <div class="rewards reveal">
+        <div>
+          <h2 data-i18n="rewardsTitle">Votre abonnement peut s'autofinancer</h2>
+          <p data-i18n="rewardsSub">Transformez une partie de vos ventes en crédits d'abonnement.</p>
+          <div class="rewards-photo"><img src="https://images.pexels.com/photos/7289723/pexels-photo-7289723.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Livraison suivie"></div>
+          <br>
+          <a href="inscription.html" class="rewards-btn" data-i18n="rewardsBtn">Découvrir l'offre</a>
+        </div>
+        <div class="roi-card">
+          <div class="roi-top">
+            <div><div class="roi-label" data-i18n="roiSales">Ventes totales</div><div class="roi-value" data-count="18300000" data-prefix="+" data-suffix=" FCFA">+18 300 000 FCFA</div></div>
+            <div><div class="roi-label" data-i18n="roiCredits">Vos crédits</div><div class="roi-value-grad" data-count="8000" data-prefix="+" data-suffix=" FCFA">+8 000 FCFA</div></div>
+          </div>
+          <div class="roi-chart"><svg viewBox="0 0 400 140" width="100%" height="140" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="roiFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FE7A1E" stop-opacity=".5"/><stop offset="100%" stop-color="#FEC005" stop-opacity="0"/></linearGradient></defs>
+            <path class="roi-area" d="M0 120 C 60 118, 110 90, 160 80 S 260 40, 320 25 S 380 10, 400 5 L400 140 L0 140 Z" fill="url(#roiFill)"/>
+            <path class="roi-line" pathLength="1" d="M0 120 C 60 118, 110 90, 160 80 S 260 40, 320 25 S 380 10, 400 5" fill="none" stroke="#FE7A1E" stroke-width="4" stroke-linecap="round"/>
+          </svg><span class="roi-dot"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="themes">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <h2 data-i18n="themesTitle">Des thèmes personnalisables</h2>
+        <p data-i18n="themesSub">Démarrez avec un design professionnel.</p>
+      </div>
+      <div class="theme-scroll" data-stagger>
+        <div class="theme-card"><div class="theme-photo t1"><img src="https://images.pexels.com/photos/7857496/pexels-photo-7857496.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Thème Basique" loading="lazy"></div><div class="theme-info"><div class="theme-name">Basique</div><div class="theme-price" data-i18n="themeIncluded">Inclus</div><p class="theme-desc" data-i18n="themeBasicDesc">Grille classique, simple et rapide.</p></div></div>
+        <div class="theme-card"><div class="theme-photo t2"><img src="https://images.pexels.com/photos/7857497/pexels-photo-7857497.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Thème Carrousel" loading="lazy"></div><div class="theme-info"><div class="theme-name">Carrousel</div><div class="theme-price" data-i18n="themeIncluded">Inclus</div><p class="theme-desc" data-i18n="themeCarouselDesc">Carrousels animés et aperçu rapide.</p></div></div>
+        <div class="theme-card"><div class="theme-photo t3"><img src="https://images.pexels.com/photos/7857499/pexels-photo-7857499.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Thème Catalogue" loading="lazy"></div><div class="theme-info"><div class="theme-name">Catalogue</div><div class="theme-price" data-i18n="themeIncluded">Inclus</div><p class="theme-desc" data-i18n="themeCatalogueDesc">Catégories, fiche produit et choix de couleur.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="tarifs">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <h2 data-i18n="pricingTitle">Un prix simple, sans commission cachée</h2>
+        <p data-i18n="pricingSub">Payez la création une fois, puis un abonnement mensuel.</p>
+      </div>
+      <div class="pricing" data-stagger>
+        <div class="price-card">
+          <div class="price-label" data-i18n="pricingCreation">Création de la boutique</div>
+          <div class="price-amount"><span id="priceCreation">5 000</span> <small>FCFA</small></div>
+          <div class="price-note" data-i18n="pricingOnce">une seule fois</div>
+          <ul class="price-list"><li data-i18n="pricingF1">Boutique en ligne avec votre sous-domaine</li><li data-i18n="pricingF2">3 thèmes, couleurs et logo personnalisables</li><li data-i18n="pricingF3">Paiement Mobile Money sécurisé (séquestre)</li></ul>
+        </div>
+        <div class="price-card featured">
+          <div class="price-label" data-i18n="pricingMonthly">Abonnement mensuel</div>
+          <div class="price-amount"><span id="priceMonthly">3 000</span> <small>FCFA</small></div>
+          <div class="price-note" data-i18n="pricingPerMonth">par mois</div>
+          <ul class="price-list"><li data-i18n="pricingF4">Gestion des produits, stocks et commandes</li><li data-i18n="pricingF5">Visibilité sur la marketplace Shopika</li><li data-i18n="pricingF6">Notifications de commande par e-mail</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="rejoindre">
+    <div class="wrap">
+      <div class="cta-band reveal">
+        <img src="https://images.pexels.com/photos/6667686/pexels-photo-6667686.jpeg?auto=compress&cs=tinysrgb&w=1600" alt="">
+        <h2 data-i18n="ctaBandTitle">Prêt à vendre partout ?</h2>
+        <p data-i18n="ctaBandSub">Rejoignez Shopika et lancez votre boutique dès aujourd'hui.</p>
+        <a href="inscription.html" class="cta-band-btn" data-i18n="ctaStart">Inscrivez-vous gratuitement</a>
+        <a href="#" class="cta-band-btn" data-create-shop data-i18n="ctaCreateShopBtn">Créer ma boutique</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0;">
+    <div class="wrap">
+      <div class="section-head-row reveal">
+        <div class="section-title" data-i18n="popularTitle">Produits populaires</div>
+        <a href="marketplace.html" class="see-all" data-i18n="seeAll">Tout voir</a>
+      </div>
+      <div id="popularProducts"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-grid">
+    <div class="footer-col">
+      <div class="footer-logo">shop<span class="brandGradientText">ika</span></div>
+      <p class="footer-tagline" data-i18n="footerTagline">Shop smart, live better.</p>
+    </div>
+    <div class="footer-col"><h4 data-i18n="footerProduct">Produit</h4>
+      <a href="index.html#fonctionnalites" data-i18n="navFeatures">Fonctionnalités</a>
+      <a href="index.html#themes" data-i18n="navThemes">Thèmes</a>
+      <a href="index.html#tarifs" data-i18n="navPricing">Tarifs</a>
+    </div>
+    <div class="footer-col"><h4 data-i18n="footerResources">Ressources</h4>
+      <a href="aide.html" data-i18n="footerHelp">Centre d'aide</a>
+    </div>
+    <div class="footer-col"><h4 data-i18n="footerCompany">Entreprise</h4>
+      <a href="mailto:adminshopika@gmail.com" data-i18n="footerContact">Contact</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span data-i18n="footerRights">© 2026 Shopika. Tous droits réservés.</span>
+    <span><a href="confidentialite.html" data-i18n="footerPrivacy">Confidentialité</a> · <a href="conditions.html" data-i18n="footerTerms">Conditions</a></span>
+  </div>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/store.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/product-card.js"></script>
+<script src="js/header.js"></script>
+<script src="js/home.js"></script>
+<script>
+// L'inscription marchand est gérée dans l'espace marchand, pas dans l'espace client.
+const merchantSignupUrl = `${(window.SHOPIKA_CONFIG.MERCHANT_APP_URL || "").replace(/\/$/, "")}/login.html?tab=signup`;
+document.querySelectorAll("[data-create-shop]").forEach((a) => {
+  a.href = merchantSignupUrl;
+});
+</script>
+</body>
+</html>

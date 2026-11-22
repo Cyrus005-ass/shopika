@@ -1,0 +1,79 @@
+/* Shopika — animations partagées (client + marchand). Source : packages/shared/motion.css */
+
+/* Navigation fluide entre pages (View Transitions inter-documents ; ignoré par les navigateurs qui ne savent pas) */
+@view-transition { navigation: auto; }
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) { animation: mt-fade-out .18s ease both; }
+  ::view-transition-new(root) { animation: mt-fade-in .28s ease both; }
+}
+@keyframes mt-fade-out { to { opacity: 0; } }
+@keyframes mt-fade-in { from { opacity: 0; } }
+
+/* Squelettes de chargement */
+.sk { position: relative; overflow: hidden; border-radius: 10px; background: var(--color-line, var(--border-color, #ececf0)); }
+.sk::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); }
+body[data-theme="dark"] .sk::after, html[data-theme="dark"] .sk::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent); }
+.sk-card { border: 1px solid var(--color-line, var(--border-color, #ececf0)); border-radius: 16px; overflow: hidden; padding-bottom: 14px; }
+.sk-thumb { height: 150px; border-radius: 0; }
+.sk-line { height: 12px; margin: 12px 13px 0; }
+.sk-line.short { width: 45%; }
+.sk-rows { display: grid; gap: 10px; padding: 8px 0; }
+.sk-row { height: 54px; }
+@media (prefers-reduced-motion: no-preference) {
+  .sk::after { animation: mt-shimmer 1.4s ease-in-out infinite; }
+}
+@keyframes mt-shimmer { to { transform: translateX(100%); } }
+
+/* Toasts */
+#mt-toasts { position: fixed; z-index: 9999; right: 16px; bottom: 16px; display: grid; gap: 10px; max-width: min(92vw, 360px); pointer-events: none; }
+.mt-toast { pointer-events: auto; padding: 12px 16px; border-radius: 12px; font: 600 14px/1.4 Inter, system-ui, sans-serif;
+  color: #fff; background: #0e1226; box-shadow: 0 14px 34px -12px rgba(0,0,0,.45);
+  opacity: 0; transform: translateY(12px) scale(.98); transition: opacity .25s ease, transform .25s cubic-bezier(.2,.8,.2,1); }
+.mt-toast.show { opacity: 1; transform: none; }
+.mt-success { background: #12875a; } .mt-error { background: #d6224a; }
+@media (max-width: 520px) { #mt-toasts { left: 12px; right: 12px; bottom: 12px; max-width: none; } }
+
+/* Micro-interactions */
+@keyframes mt-bump { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@keyframes mt-pop { 0% { transform: scale(1); } 35% { transform: scale(1.4); } 70% { transform: scale(.92); } 100% { transform: scale(1); } }
+.mt-bump { animation: mt-bump .35s ease; }
+.mt-pop { animation: mt-pop .42s cubic-bezier(.3,1.6,.5,1); }
+
+/* Apparition au scroll (sobre) */
+.mt-js .mt-reveal:not(.in), .mt-js .mt-stagger:not(.in) > * { opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes mt-rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+  .mt-js .mt-reveal.in, .mt-js .mt-stagger.in > * { animation: mt-rise .7s cubic-bezier(.2,.7,.2,1) var(--rd, 0ms) backwards; }
+}
+
+/* Timeline de commande (étapes qui se remplissent) */
+.mt-timeline { list-style: none; display: grid; gap: 0; margin: 12px 0; padding: 0; }
+.mt-timeline li { position: relative; padding: 0 0 18px 34px; color: var(--color-gray, var(--text-secondary, #6b6e80)); font-size: 14px; }
+.mt-timeline li::before { content: ""; position: absolute; left: 6px; top: 4px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--color-bg, var(--bg-card, #fff)); border: 2px solid var(--color-line, var(--border-color, #ddd)); transition: background .4s, border-color .4s; }
+.mt-timeline li::after { content: ""; position: absolute; left: 12px; top: 20px; bottom: -2px; width: 2px; background: var(--color-line, var(--border-color, #ddd)); }
+.mt-timeline li:last-child::after { display: none; }
+.mt-timeline li.done { color: var(--color-text, var(--text-primary, #111)); font-weight: 600; }
+.mt-timeline li.done::before { background: var(--color-success, #12875a); border-color: var(--color-success, #12875a); }
+.mt-timeline li.current::before { border-color: var(--color-orange, #fe7a1e); box-shadow: 0 0 0 0 rgba(254,122,30,.5); }
+@media (prefers-reduced-motion: no-preference) {
+  .mt-timeline li.current::before { animation: mt-ping 1.8s ease-out infinite; }
+  .mt-timeline li.done { animation: mt-rise .5s ease backwards; }
+}
+@keyframes mt-ping { to { box-shadow: 0 0 0 10px rgba(254,122,30,0); } }
+
+/* Compte à rebours / pastille d'état */
+.mt-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  background: color-mix(in srgb, var(--color-orange, #fe7a1e) 14%, transparent); color: var(--color-orange, #fe7a1e); }
+
+/* Check animé (succès de paiement, publication de boutique) */
+.mt-check { width: 72px; height: 72px; }
+.mt-check circle { fill: none; stroke: var(--color-success, #12875a); stroke-width: 4; stroke-dasharray: 190; stroke-dashoffset: 190; }
+.mt-check path { fill: none; stroke: var(--color-success, #12875a); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 50; stroke-dashoffset: 50; }
+@media (prefers-reduced-motion: no-preference) {
+  .mt-check circle { animation: mt-draw .7s ease forwards; }
+  .mt-check path { animation: mt-draw .45s ease .55s forwards; }
+}
+@media (prefers-reduced-motion: reduce) { .mt-check circle, .mt-check path { stroke-dashoffset: 0; } }
+@keyframes mt-draw { to { stroke-dashoffset: 0; } }
