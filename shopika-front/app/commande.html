@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Détail de la commande — Shopika</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-darkbg-32.png?v=2">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=2">
+<script src="../js/favicon.js"></script>
+<script src="../js/update-manager.js" data-sw="../sw.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/globals.css">
+<link rel="stylesheet" href="../css/app-shell.css">
+<link rel="stylesheet" href="../css/app-pages.css">
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="app-shell-backdrop" id="appShellBackdrop"></div>
+  <button class="app-hamburger-btn" id="appHamburgerBtn">☰</button>
+  <aside class="app-sidebar" id="appSidebar"></aside>
+  <main class="app-content">
+    <div class="page-main" id="pageMain"></div>
+  </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/i18n.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/product-card.js"></script>
+<script src="../js/app-shell.js"></script>
+<script>
+const user = renderAppShell("commandes");
+const orderId = new URLSearchParams(location.search).get("id");
+
+const TRACK_SEQ = [
+  { key: "received", i18n: "trackReceived" },
+  { key: "preparation", i18n: "trackPrep" },
+  { key: "shipped", i18n: "trackShipped" },
+  { key: "delivered", i18n: "trackDelivered" },
+];
+const BADGE_CLASS = { EN_PREPARATION: "badge-blue", EXPEDIEE: "badge-blue", LIVREE: "badge-green", ANNULEE: "badge-gray", LITIGE: "badge-red" };
+const STATUS_I18N = { EN_PREPARATION: "statusPrep", EXPEDIEE: "statusShipped", LIVREE: "statusDelivered", ANNULEE: "statusCancelled", LITIGE: "statusDispute" };
+const PAYMENT_STATUS_CLASS = { PAYE_ESCROW: "payment-status-escrow", EN_VALIDATION_ADMIN: "payment-status-admin", LIBERE_MARCHAND: "payment-status-released", BLOQUE_LITIGE: "payment-status-dispute" };
+const PAYMENT_STATUS_I18N = { PAYE_ESCROW: "paymentStatusEscrow", EN_VALIDATION_ADMIN: "paymentStatusAdmin", LIBERE_MARCHAND: "paymentStatusReleased", BLOQUE_LITIGE: "paymentStatusDispute" };
+const PAYMENT_METHOD_LABELS = { WAVE: "Wave", MTN_MOMO: "MTN Mobile Money", MOOV_MONEY: "Moov Money", ORANGE_MONEY: "Orange Money", VISA: "Visa", MASTERCARD: "Mastercard", MOBILE_MONEY_ORANGE: "Orange Money", MOBILE_MONEY_MTN: "MTN Mobile Money", MOBILE_MONEY_MOOV: "Moov Money", CARTE_BANCAIRE: "Carte bancaire" };
+function paymentMethodLabel(method) { return PAYMENT_METHOD_LABELS[method] || method; }
+
+let pollTimer = null;
+async function renderOrder() {
+  const order = await Store.getOrderById(orderId);
+  const main = document.getElementById("pageMain");
+  if (!order) {
+    main.innerHTML = `<p style="color:var(--color-gray);">Commande introuvable.</p>`;
+    return;
+  }
+
+  // Le paiement mobile money se confirme sur le téléphone du client, de
+  // façon asynchrone (webhook du backend) : tant que le statut reste
+  // "EN_VALIDATION_ADMIN" (paiement en attente de confirmation FedaPay),
+  // on revérifie automatiquement toutes les 4 secondes.
+  // NB : l'adaptateur backend (client-adapter.js) mappe paymentStatus
+  // "en_attente" -> "EN_VALIDATION_ADMIN", jamais "EN_ATTENTE".
+  clearTimeout(pollTimer);
+  if (order.payment && order.payment.status === "EN_VALIDATION_ADMIN") {
+    pollTimer = setTimeout(renderOrder, 4000);
+  }
+
+  const total = order.total; // déjà calculé et figé par le backend
+  const doneSteps = new Set(order.tracking.map((t) => t.step));
+  const isFinal = order.status === "ANNULEE" || order.status === "LITIGE";
+  const dateLocale = getLang() === "fr" ? "fr-FR" : "en-US";
+
+  // order.items est déjà complet côté backend (nom + prix figés au moment
+  // de l'achat) : plus besoin de recharger chaque produit séparément.
+  const itemsHtml = order.items.map((it) => `
+      <div class="product-row">
+        <div class="product-thumb"></div>
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:14px;">${it.productName || "Produit"}${it.variant ? ` <span style="font-weight:500; color:var(--color-gray);">· ${escapeHtml(it.variant)}</span>` : ""}</div>
+          <div style="color:var(--color-gray); font-size:12.5px;">${it.quantity} × ${formatPrice(it.price)}</div>
+        </div>
+        <div style="font-weight:700;">${formatPrice(it.price * it.quantity)}</div>
+      </div>`).join("");
+
+  const trackingHtml = TRACK_SEQ.map((step) => {
+    const done = doneSteps.has(step.key);
+    const stepData = order.tracking.find((t) => t.step === step.key);
+    return `
+      <div class="track-step ${done ? "done" : ""}">
+        <div class="track-dot"></div>
+        <div>
+          <div class="track-label" data-i18n="${step.i18n}"></div>
+          <div class="track-time">${stepData ? new Date(stepData.createdAt).toLocaleString(dateLocale) : "—"}</div>
+        </div>
+      </div>`;
+  }).join("");
+
+  let actionsHtml = "";
+  if (!isFinal && order.status !== "LIVREE") {
+    // Sans interface marchande connectée, la commande ne peut pas encore
+    // passer automatiquement par "Expédiée" — les deux actions client restent
+    // donc disponibles dès que la commande n'est ni livrée, ni annulée, ni en litige.
+    actionsHtml = `<div class="actions">
+      <button class="btn-brand-sm" id="receivedBtn" data-i18n="orderReceivedBtn"></button>
+      <button class="btn-outline-sm" id="disputeBtn" data-i18n="orderDisputeBtn"></button>
+    </div>`;
+  } else if (order.status === "LIVREE") {
+    actionsHtml = `<div class="actions">
+      <button class="btn-outline-sm" id="disputeBtn" data-i18n="orderDisputeBtn"></button>
+    </div>`;
+  }
+
+  main.innerHTML = `
+    <a href="commandes.html" class="back-link">← <span data-i18n="orderBack"></span></a>
+    <div class="order-head-row">
+      <div><div style="font-size:22px; font-weight:700;">${order.id}</div><div style="color:var(--color-gray);">${new Date(order.createdAt).toLocaleDateString(dateLocale)}</div></div>
+      <span class="badge ${BADGE_CLASS[order.status]}" style="font-size:13px; padding:7px 14px;" data-i18n="${STATUS_I18N[order.status]}"></span>
+    </div>
+    <div class="checkout-layout">
+      <div>
+        <div class="card">
+          <div style="font-weight:700; margin-bottom:12px;" data-i18n="orderProducts"></div>
+          ${itemsHtml}
+          <div class="total-row"><span data-i18n="cartTotal"></span><span>${formatPrice(total)}</span></div>
+        </div>
+        ${!isFinal ? `
+        <div class="card">
+          <div style="font-weight:700; margin-bottom:6px;" data-i18n="orderTracking"></div>
+          <div class="tracking">${trackingHtml}</div>
+          ${actionsHtml}
+        </div>` : `<div class="card"><div style="color:var(--color-gray);">${order.status === "ANNULEE" ? "Cette commande a été annulée." : "Un litige est en cours de traitement."}</div></div>`}
+      </div>
+      <div>
+        <div class="card">
+          <div style="font-weight:700; margin-bottom:10px;" data-i18n="orderInfo"></div>
+          <div class="info-label" data-i18n="checkoutAddress"></div><div class="info-value">${order.address}</div>
+        </div>
+        <div class="card">
+          <div style="font-weight:700; margin-bottom:10px;" data-i18n="orderPayment"></div>
+          <div>${paymentMethodLabel(order.payment.method)}</div>
+          <div class="payment-status-row ${PAYMENT_STATUS_CLASS[order.payment.status] || "payment-status-escrow"}">
+            <span data-i18n="${PAYMENT_STATUS_I18N[order.payment.status] || "paymentStatusEscrow"}"></span>
+          </div>
+          ${order.payment.status === "EN_ATTENTE" ? `<p style="font-size:12.5px; color:var(--color-gray); margin-top:10px; line-height:1.5;">Vérifiez votre téléphone pour confirmer le paiement (code USSD ou notification MoMo). Cette page se met à jour automatiquement.</p>` : ""}
+          ${order.status === "LITIGE" ? `<p style="font-size:12.5px; color:var(--color-gray); margin-top:10px; line-height:1.5;" data-i18n="disputeNoticeText"></p>` : ""}
+        </div>
+      </div>
+    </div>`;
+  applyTranslations();
+
+  const receivedBtn = document.getElementById("receivedBtn");
+  if (receivedBtn) receivedBtn.addEventListener("click", async () => {
+    receivedBtn.disabled = true;
+    try {
+      // Mécanisme d'escrow : la réception confirmée par le client NE libère
+      // PAS directement l'argent au marchand — le backend place la commande
+      // en attente de validation par un administrateur Shopika. C'est cette
+      // validation, dans l'espace admin, qui déclenchera le versement réel.
+      await Store.confirmReception(order.id);
+      await renderOrder();
+      setTimeout(() => alert(t("receivedConfirmedToast")), 100);
+    } catch (err) {
+      alert(err.message);
+      receivedBtn.disabled = false;
+    }
+  });
+  const disputeBtn = document.getElementById("disputeBtn");
+  if (disputeBtn) disputeBtn.addEventListener("click", async () => {
+    disputeBtn.disabled = true;
+    try {
+      // Le paiement reste bloqué en séquestre tant que le litige n'est pas
+      // arbitré par un administrateur.
+      await Store.openDispute(order.id);
+      allOrdersCache = null;
+      await renderOrder();
+    } catch (err) {
+      alert(err.message);
+      disputeBtn.disabled = false;
+    }
+  });
+}
+
+if (user) renderOrder();
+</script>
+</body>
+</html>
