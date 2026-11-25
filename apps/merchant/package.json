@@ -1,0 +1,11 @@
+{
+  "name": "shopika-merchant",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node tools/build-update-kit.cjs --prefix shopika-merchant",
+    "vercel-build": "node tools/build-update-kit.cjs --prefix shopika-merchant",
+    "dev": "npx serve .",
+    "install": "echo 'no dependencies'"
+  }
+}

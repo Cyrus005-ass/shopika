@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mes commandes — Shopika</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-darkbg-32.png?v=2">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=2">
+<script src="../js/favicon.js"></script>
+<script src="../js/update-manager.js" data-sw="../sw.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/globals.css">
+<link rel="stylesheet" href="../css/motion.css">
+<link rel="stylesheet" href="../css/app-shell.css">
+<link rel="stylesheet" href="../css/app-pages.css">
+<script src="../js/motion.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="app-shell-backdrop" id="appShellBackdrop"></div>
+  <button class="app-hamburger-btn" id="appHamburgerBtn">☰</button>
+  <aside class="app-sidebar" id="appSidebar"></aside>
+  <main class="app-content">
+    <div class="page-main" id="pageMain"></div>
+  </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/i18n.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/product-card.js"></script>
+<script src="../js/app-shell.js"></script>
+<script>
+const user = renderAppShell("commandes");
+let currentTab = "toutes";
+
+const TABS = [
+  { key: "toutes", i18n: "statusAll" },
+  { key: "EN_PREPARATION", i18n: "statusPrep" },
+  { key: "EXPEDIEE", i18n: "statusShipped" },
+  { key: "LIVREE", i18n: "statusDelivered" },
+  { key: "ANNULEE", i18n: "statusCancelled" },
+  { key: "LITIGE", i18n: "statusDispute" },
+];
+const BADGE_CLASS = { EN_PREPARATION: "badge-blue", EXPEDIEE: "badge-blue", LIVREE: "badge-green", ANNULEE: "badge-gray", LITIGE: "badge-red" };
+const PAYMENT_STATUS_CLASS = { PAYE_ESCROW: "payment-status-escrow", EN_VALIDATION_ADMIN: "payment-status-admin", LIBERE_MARCHAND: "payment-status-released", BLOQUE_LITIGE: "payment-status-dispute" };
+const PAYMENT_STATUS_I18N = { PAYE_ESCROW: "paymentStatusEscrow", EN_VALIDATION_ADMIN: "paymentStatusAdmin", LIBERE_MARCHAND: "paymentStatusReleased", BLOQUE_LITIGE: "paymentStatusDispute" };
+
+let allOrdersCache = null;
+async function renderOrders() {
+  if (!allOrdersCache) {
+    document.getElementById("pageMain").innerHTML = `<h1 class="page-title" data-i18n="ordersTitle"></h1>${window.Motion ? Motion.skeletonRows(4) : "<p>…</p>"}`;
+    try { allOrdersCache = await Store.getMyOrders(); } catch { allOrdersCache = []; }
+  }
+  const orders = currentTab === "toutes" ? allOrdersCache : allOrdersCache.filter((o) => o.status === currentTab);
+  const dateLocale = getLang() === "fr" ? "fr-FR" : "en-US";
+
+  const tabsHtml = TABS.map((tab) => `<button class="${tab.key === currentTab ? "active" : ""}" onclick="setTab('${tab.key}')" data-i18n="${tab.i18n}"></button>`).join("");
+
+  let listHtml;
+  if (orders.length === 0) {
+    listHtml = `<p style="color:var(--color-gray);" data-i18n="ordersEmpty"></p>`;
+  } else {
+    listHtml = orders.map((o) => {
+      const total = o.total; // déjà calculé et figé par le backend à la création
+      const label = TABS.find((tab) => tab.key === o.status);
+      return `
+        <a href="commande.html?id=${o.id}" class="order-card">
+          <div class="order-top">
+            <div><div class="order-id">${o.id}</div><div class="order-date">${new Date(o.createdAt).toLocaleDateString(dateLocale)}</div></div>
+            <span class="badge ${BADGE_CLASS[o.status]}" data-i18n="${label ? label.i18n : ""}"></span>
+          </div>
+          <div class="order-bottom">
+            <span>${o.items.length} <span data-i18n="ordersItems"></span></span>
+            <span class="order-total">${formatPrice(total)}</span>
+          </div>
+          ${o.payment ? `<div class="payment-status-row ${PAYMENT_STATUS_CLASS[o.payment.status] || "payment-status-escrow"}" style="margin-top:10px; padding:8px 12px; font-size:11.5px;"><span data-i18n="${PAYMENT_STATUS_I18N[o.payment.status] || "paymentStatusEscrow"}"></span></div>` : ""}
+        </a>`;
+    }).join("");
+  }
+
+  document.getElementById("pageMain").innerHTML = `
+    <h1 class="page-title" data-i18n="ordersTitle"></h1>
+    <div class="tabs">${tabsHtml}</div>
+    <div class="mt-stagger" id="ordersList">${listHtml}</div>`;
+  applyTranslations();
+  if (window.Motion) Motion.reveal(document.getElementById("ordersList"));
+}
+function setTab(key) { currentTab = key; renderOrders(); } // allOrdersCache déjà rempli, pas de nouvel appel réseau
+
+if (user) renderOrders();
+</script>
+</body>
+</html>

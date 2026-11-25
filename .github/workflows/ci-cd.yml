@@ -19,9 +19,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: apps/api/package-lock.json
       - run: npm ci
+        working-directory: apps/api
       - run: npm run lint
+        working-directory: apps/api
       - run: npm run typecheck
+        working-directory: apps/api
+      # Mise à jour sans interruption : le kit copié dans chaque front doit être à jour,
+      # et toute NOUVELLE migration de base doit rester compatible avec l'ancienne version du code.
+      - run: node scripts/sync-shared.js --check
+      - run: npm run check:migrations
+        working-directory: apps/api
 
   test:
     name: Tests
@@ -45,17 +54,37 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: apps/api/package-lock.json
       - run: npm ci
+        working-directory: apps/api
       - run: npx prisma generate
+        working-directory: apps/api
       - run: npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://shopika:testpass@localhost:5432/shopika_test
+        working-directory: apps/api
       - run: npm run test
+        working-directory: apps/api
+
+  gate:
+    name: Secrets de déploiement présents ?
+    runs-on: ubuntu-latest
+    outputs:
+      vercel: ${{ steps.check.outputs.vercel }}
+      migrate: ${{ steps.check.outputs.migrate }}
+    steps:
+      - id: check
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PROD_DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+        run: |
+          [ -n "$VERCEL_TOKEN" ] && echo "vercel=true" >> "$GITHUB_OUTPUT" || echo "vercel=false" >> "$GITHUB_OUTPUT"
+          [ -n "$PROD_DIRECT_URL" ] && echo "migrate=true" >> "$GITHUB_OUTPUT" || echo "migrate=false" >> "$GITHUB_OUTPUT"
 
   build-api:
     name: Build API (Vercel)
-    needs: [lint-and-typecheck, test]
-    if: ${{ secrets.VERCEL_TOKEN != '' }}
+    needs: [gate, lint-and-typecheck, test]
+    if: needs.gate.outputs.vercel == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,8 +92,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: apps/api/package-lock.json
       - run: npm ci
+        working-directory: apps/api
       - run: npx prisma generate
+        working-directory: apps/api
       - name: Deploy to Vercel (Preview)
         if: github.event_name == 'pull_request'
         uses: amondnet/vercel-action@v25
@@ -73,12 +105,13 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_API }}
           scope: ${{ secrets.VERCEL_ORG_ID }}
+          working-directory: ./apps/api
           alias-domains: pr-${{ github.event.pull_request.number }}.shopika-api.vercel.app
 
   build-admin:
     name: Build Admin Dashboard
-    needs: [lint-and-typecheck, test]
-    if: ${{ secrets.VERCEL_TOKEN != '' }}
+    needs: [gate, lint-and-typecheck, test]
+    if: needs.gate.outputs.vercel == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -86,9 +119,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          working-directory: ./shopika-admin
+          cache-dependency-path: apps/admin/package-lock.json
       - run: npm ci
+        working-directory: ./apps/admin
       - run: npm run build
+        working-directory: ./apps/admin
+      - name: Le build doit produire sw.js et version.json (mise à jour des utilisateurs)
+        run: test -f dist/sw.js && test -f dist/version.json
+        working-directory: ./apps/admin
       - name: Deploy to Vercel (Preview)
         if: github.event_name == 'pull_request'
         uses: amondnet/vercel-action@v25
@@ -97,13 +135,13 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
           scope: ${{ secrets.VERCEL_ORG_ID }}
-          working-directory: ./shopika-admin
+          working-directory: ./apps/admin
           alias-domains: pr-${{ github.event.pull_request.number }}.shopika-admin.vercel.app
 
   build-client:
     name: Build Client Front
-    needs: [lint-and-typecheck, test]
-    if: ${{ secrets.VERCEL_TOKEN != '' }}
+    needs: [gate, lint-and-typecheck, test]
+    if: needs.gate.outputs.vercel == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -111,8 +149,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          working-directory: ./shopika-front
+          cache-dependency-path: apps/api/package-lock.json
       - run: npm ci 2>/dev/null || echo "Static files only"
+      - name: Le build doit produire sw.js et version.json (mise à jour des utilisateurs)
+        run: node tools/build-update-kit.cjs --prefix shopika-client && test -f sw.js && test -f version.json
+        working-directory: ./apps/web
       - name: Deploy to Vercel (Preview)
         if: github.event_name == 'pull_request'
         uses: amondnet/vercel-action@v25
@@ -121,13 +162,36 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_CLIENT }}
           scope: ${{ secrets.VERCEL_ORG_ID }}
-          working-directory: ./shopika-front
+          working-directory: ./apps/web
           alias-domains: pr-${{ github.event.pull_request.number }}.shopika-client.vercel.app
+
+  # Migration de la base AVANT le nouveau code (« expand ») : l'ancienne version continue de
+  # fonctionner pendant et après (garanti par `npm run check:migrations`).
+  migrate-production:
+    name: Migrate Database (production)
+    needs: [gate, build-api, build-admin, build-client]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.gate.outputs.migrate == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/api/package-lock.json
+      - run: npm ci
+        working-directory: apps/api
+      - run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+        working-directory: apps/api
 
   deploy-production:
     name: Deploy Production
-    needs: [build-api, build-admin, build-client]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.VERCEL_TOKEN != ''
+    needs: [gate, build-api, build-admin, build-client, migrate-production]
+    if: ${{ always() && !failure() && !cancelled() && github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.gate.outputs.vercel == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -138,6 +202,7 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_API }}
           vercel-args: '--prod'
+          working-directory: ./apps/api
       - name: Deploy Admin to Vercel Production
         uses: amondnet/vercel-action@v25
         with:
@@ -145,7 +210,7 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
           vercel-args: '--prod'
-          working-directory: ./shopika-admin
+          working-directory: ./apps/admin
       - name: Deploy Client to Vercel Production
         uses: amondnet/vercel-action@v25
         with:
@@ -153,4 +218,30 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_CLIENT }}
           vercel-args: '--prod'
-          working-directory: ./shopika-front
+          working-directory: ./apps/web
+
+  # Après le déploiement : on vérifie que la nouvelle version répond (API + base de données + fronts).
+  # Renseignez les « Variables » du dépôt : PRODUCTION_API_URL, et si vous voulez PRODUCTION_CLIENT_URL,
+  # PRODUCTION_MERCHANT_URL, PRODUCTION_ADMIN_URL. Sans PRODUCTION_API_URL, ce contrôle est ignoré.
+  smoke-test:
+    name: Smoke test (production)
+    needs: [deploy-production]
+    if: ${{ vars.PRODUCTION_API_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Vérifier la version en ligne
+        env:
+          API: ${{ vars.PRODUCTION_API_URL }}
+          CLIENT: ${{ vars.PRODUCTION_CLIENT_URL }}
+          MERCHANT: ${{ vars.PRODUCTION_MERCHANT_URL }}
+          ADMIN: ${{ vars.PRODUCTION_ADMIN_URL }}
+        run: |
+          args=(--api "$API" --commit "$GITHUB_SHA" --retries 12 --delay 10)
+          [ -n "$CLIENT" ] && args+=(--front "$CLIENT")
+          [ -n "$MERCHANT" ] && args+=(--front "$MERCHANT")
+          [ -n "$ADMIN" ] && args+=(--front "$ADMIN")
+          node apps/api/scripts/smoke-test.js "${args[@]}"

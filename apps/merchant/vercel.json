@@ -1,0 +1,19 @@
+{
+  "buildCommand": "node tools/build-update-kit.cjs --prefix shopika-merchant",
+  "outputDirectory": ".",
+  "devCommand": "npx serve .",
+  "installCommand": "echo 'no dependencies'",
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/version.json",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    }
+  ]
+}

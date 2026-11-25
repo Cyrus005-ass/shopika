@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mot de passe oublié — Shopika</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-darkbg-32.png?v=2">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
+<script src="js/favicon.js"></script>
+<script src="js/update-manager.js" data-sw="../sw.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/globals.css">
+<link rel="stylesheet" href="css/motion.css">
+<link rel="stylesheet" href="css/auth.css">
+<script src="js/motion.js"></script>
+</head>
+<body>
+
+<main class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">shop<span class="brandGradientText">ika</span></div>
+    <h1 class="auth-title">Mot de passe oublié ?</h1>
+    <p class="auth-subtitle">Entrez votre adresse e-mail : nous vous envoyons un lien pour en choisir un nouveau.</p>
+
+    <div id="errorBox" class="auth-error" style="display:none;"></div>
+    <div id="okBox" class="auth-success" style="display:none;"></div>
+
+    <form id="forgotForm" class="auth-form">
+      <div class="auth-field"><label for="email">Adresse e-mail</label><input id="email" type="email" placeholder="vous@exemple.com" autocomplete="email" required></div>
+      <button id="submitBtn" class="auth-submit">Envoyer le lien</button>
+    </form>
+    <p class="auth-hint" style="text-align:center;">Le lien est valable 30 minutes et ne sert qu'une fois.</p>
+    <p class="auth-footer"><a href="connexion.html">← Retour à la connexion</a></p>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/store.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/auth.js"></script>
+<script>
+document.documentElement.setAttribute("data-theme", localStorage.getItem("shopika_theme") || "light");
+document.getElementById("forgotForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errorBox = document.getElementById("errorBox"), okBox = document.getElementById("okBox"), btn = document.getElementById("submitBtn");
+  errorBox.style.display = okBox.style.display = "none";
+  btn.disabled = true; btn.textContent = "Envoi…";
+  try {
+    const res = await Api.apiFetch("/auth/forgot-password", { method: "POST", auth: false, body: { email: document.getElementById("email").value.trim() } });
+    okBox.textContent = res.message || "Si un compte existe pour cette adresse, un e-mail vient de partir.";
+    okBox.style.display = "block";
+    btn.textContent = "E-mail envoyé ✓";
+    setTimeout(() => { btn.disabled = false; btn.textContent = "Renvoyer le lien"; }, 30000);
+  } catch (err) {
+    errorBox.textContent = err.message || "Une erreur est survenue, réessayez.";
+    errorBox.style.display = "block";
+    btn.disabled = false; btn.textContent = "Envoyer le lien";
+  }
+});
+</script>
+</body>
+</html>

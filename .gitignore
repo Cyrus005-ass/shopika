@@ -9,3 +9,6 @@ node_modules/
 dist/
 .vercel
 .env*
+
+# Environnement : jamais committé, sauf le modèle
+!apps/api/.env.example

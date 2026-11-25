@@ -1,0 +1,10 @@
+{
+  "name": "shopika-client",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node tools/build-update-kit.cjs --prefix shopika-client",
+    "vercel-build": "node tools/build-update-kit.cjs --prefix shopika-client",
+    "install": "echo 'no dependencies'"
+  }
+}
