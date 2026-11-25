@@ -1,10 +1,9 @@
 const express = require('express');
 const path = require('node:path');
-const prisma = require('../lib/prisma');
-const { versionHandler, createReadyHandler } = require('../../lib/systemHandlers');
+const prisma = require('../../lib/prisma');
 
 const router = express.Router();
-const packageJson = require(path.resolve(__dirname, '..', '..', 'package.json'));
+const packageJson = require(path.resolve(__dirname, '..', '..', '..', 'package.json'));
 
 router.get('/version', (req, res) => {
   res.json({ name: packageJson.name, version: packageJson.version });
