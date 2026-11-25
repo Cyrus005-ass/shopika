@@ -1,6 +1,0 @@
-{
-  "buildCommand": "echo 'static site - no build'",
-  "outputDirectory": ".",
-  "devCommand": "npx serve .",
-  "installCommand": "echo 'no dependencies'"
-}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon espace — Shopika</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-darkbg-32.png?v=2">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=2">
+<script src="../js/favicon.js"></script>
+<script src="../js/update-manager.js" data-sw="../sw.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/globals.css">
+<link rel="stylesheet" href="../css/motion.css">
+<link rel="stylesheet" href="../css/app-shell.css">
+<link rel="stylesheet" href="../css/app-pages.css">
+<script src="../js/motion.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="app-shell-backdrop" id="appShellBackdrop"></div>
+  <button class="app-hamburger-btn" id="appHamburgerBtn">☰</button>
+  <aside class="app-sidebar" id="appSidebar"></aside>
+  <main class="app-content">
+    <div class="page-main" id="pageMain"></div>
+  </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/i18n.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/product-card.js"></script>
+<script src="../js/app-shell.js"></script>
+<script>
+const user = renderAppShell("home");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const BADGE = { EN_PREPARATION: "badge-blue", EXPEDIEE: "badge-blue", LIVREE: "badge-green", ANNULEE: "badge-gray", LITIGE: "badge-red" };
+const STATUS_I18N = { EN_PREPARATION: "statusPrep", EXPEDIEE: "statusShipped", LIVREE: "statusDelivered", ANNULEE: "statusCancelled", LITIGE: "statusDispute" };
+
+async function renderDashboard() {
+  const main = document.getElementById("pageMain");
+  main.innerHTML = `
+    <h1 class="page-title"><span data-i18n="dashboardGreeting"></span> ${esc(user.firstName)} 👋</h1>
+    <p class="page-subtitle" data-i18n="dashboardIntro"></p>
+    <div class="dash-grid">
+      <div class="dash-card"><div class="dash-card-label" data-i18n="dashOrders"></div><div class="dash-card-value" id="kOrders">…</div></div>
+      <div class="dash-card"><div class="dash-card-label" data-i18n="dashInProgress"></div><div class="dash-card-value" id="kProgress">…</div></div>
+      <div class="dash-card"><div class="dash-card-label" data-i18n="dashFavorites"></div><div class="dash-card-value" id="kFavs">…</div></div>
+    </div>
+    <div class="dash-section-head"><h2 data-i18n="dashLatest"></h2><a href="commandes.html" data-i18n="dashSeeAll"></a></div>
+    <div id="latestOrders">${window.Motion ? Motion.skeletonRows(3) : ""}</div>
+    <a class="dash-sell" href="devenir-marchand.html"><strong data-i18n="dashSell"></strong><span data-i18n="dashSellSub"></span></a>`;
+  applyTranslations();
+
+  const [orders, favs] = await Promise.all([
+    Store.getMyOrders().catch(() => []),
+    Store.getFavoriteProducts().catch(() => []),
+  ]);
+  const setNum = (id, n) => { const el = document.getElementById(id); if (el) { el.textContent = String(n); if (window.Motion) Motion.animateNumbers(el.parentNode, "#" + id); } };
+  setNum("kOrders", orders.length);
+  setNum("kProgress", orders.filter((o) => o.status === "EN_PREPARATION" || o.status === "EXPEDIEE").length);
+  setNum("kFavs", favs.length);
+
+  const dateLocale = getLang() === "fr" ? "fr-FR" : "en-US";
+  const box = document.getElementById("latestOrders");
+  if (!orders.length) {
+    box.innerHTML = `<div class="dash-empty"><p data-i18n="dashNoOrders"></p><a class="dash-btn" href="../marketplace.html" data-i18n="dashExplore"></a></div>`;
+  } else {
+    box.className = "mt-stagger";
+    box.innerHTML = orders.slice(0, 3).map((o) => `
+      <a href="commande.html?id=${encodeURIComponent(o.id)}" class="order-card">
+        <div class="order-top">
+          <div><div class="order-id">${esc(o.id)}</div><div class="order-date">${new Date(o.createdAt).toLocaleDateString(dateLocale)}</div></div>
+          <span class="badge ${BADGE[o.status] || ""}" data-i18n="${STATUS_I18N[o.status] || ""}"></span>
+        </div>
+        <div class="order-bottom"><span>${o.items.length} <span data-i18n="ordersItems"></span></span><span class="order-total">${formatPrice(o.total)}</span></div>
+      </a>`).join("");
+    if (window.Motion) Motion.reveal(box);
+  }
+  applyTranslations();
+}
+if (user) renderDashboard();
+document.addEventListener("langchange", () => { if (user) renderDashboard(); });
+</script>
+</body>
+</html>

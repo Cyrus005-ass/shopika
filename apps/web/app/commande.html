@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Détail de la commande — Shopika</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-darkbg-32.png?v=2">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=2">
+<script src="../js/favicon.js"></script>
+<script src="../js/update-manager.js" data-sw="../sw.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/globals.css">
+<link rel="stylesheet" href="../css/motion.css">
+<link rel="stylesheet" href="../css/dispute.css">
+<link rel="stylesheet" href="../css/app-shell.css">
+<link rel="stylesheet" href="../css/app-pages.css">
+<script src="../js/motion.js"></script>
+<script src="../js/dispute-thread.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="app-shell-backdrop" id="appShellBackdrop"></div>
+  <button class="app-hamburger-btn" id="appHamburgerBtn">☰</button>
+  <aside class="app-sidebar" id="appSidebar"></aside>
+  <main class="app-content">
+    <div class="page-main" id="pageMain"></div>
+  </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/i18n.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/product-card.js"></script>
+<script src="../js/app-shell.js"></script>
+<script>
+const user = renderAppShell("commandes");
+const orderId = new URLSearchParams(location.search).get("id");
+
+const TRACK_SEQ = [
+  { key: "received", i18n: "trackReceived" },
+  { key: "preparation", i18n: "trackPrep" },
+  { key: "shipped", i18n: "trackShipped" },
+  { key: "delivered", i18n: "trackDelivered" },
+];
+const BADGE_CLASS = { EN_PREPARATION: "badge-blue", EXPEDIEE: "badge-blue", LIVREE: "badge-green", ANNULEE: "badge-gray", LITIGE: "badge-red" };
+const STATUS_I18N = { EN_PREPARATION: "statusPrep", EXPEDIEE: "statusShipped", LIVREE: "statusDelivered", ANNULEE: "statusCancelled", LITIGE: "statusDispute" };
+const PAYMENT_STATUS_CLASS = { PAYE_ESCROW: "payment-status-escrow", EN_VALIDATION_ADMIN: "payment-status-admin", LIBERE_MARCHAND: "payment-status-released", BLOQUE_LITIGE: "payment-status-dispute" };
+const PAYMENT_STATUS_I18N = { PAYE_ESCROW: "paymentStatusEscrow", EN_VALIDATION_ADMIN: "paymentStatusAdmin", LIBERE_MARCHAND: "paymentStatusReleased", BLOQUE_LITIGE: "paymentStatusDispute" };
+const PAYMENT_METHOD_LABELS = { WAVE: "Wave", MTN_MOMO: "MTN Mobile Money", MOOV_MONEY: "Moov Money", ORANGE_MONEY: "Orange Money", VISA: "Visa", MASTERCARD: "Mastercard", MOBILE_MONEY_ORANGE: "Orange Money", MOBILE_MONEY_MTN: "MTN Mobile Money", MOBILE_MONEY_MOOV: "Moov Money", CARTE_BANCAIRE: "Carte bancaire" };
+function paymentMethodLabel(method) { return PAYMENT_METHOD_LABELS[method] || method; }
+
+let pollTimer = null;
+async function renderOrder() {
+  const order = await Store.getOrderById(orderId);
+  const main = document.getElementById("pageMain");
+  if (!order) {
+    main.innerHTML = `<p style="color:var(--color-gray);">Commande introuvable.</p>`;
+    return;
+  }
+
+  // Le paiement mobile money se confirme sur le téléphone du client, de
+  // façon asynchrone (webhook du backend) : tant que le statut reste
+  // "EN_VALIDATION_ADMIN" (paiement en attente de confirmation FedaPay),
+  // on revérifie automatiquement toutes les 4 secondes.
+  // NB : l'adaptateur backend (client-adapter.js) mappe paymentStatus
+  // "en_attente" -> "EN_VALIDATION_ADMIN", jamais "EN_ATTENTE".
+  clearTimeout(pollTimer);
+  if (order.payment && order.payment.status === "EN_VALIDATION_ADMIN") {
+    pollTimer = setTimeout(renderOrder, 4000);
+  }
+
+  const total = order.total; // déjà calculé et figé par le backend
+  const doneSteps = new Set(order.tracking.map((t) => t.step));
+  const isFinal = order.status === "ANNULEE" || order.status === "LITIGE";
+  const dateLocale = getLang() === "fr" ? "fr-FR" : "en-US";
+
+  // order.items est déjà complet côté backend (nom + prix figés au moment
+  // de l'achat) : plus besoin de recharger chaque produit séparément.
+  const itemsHtml = order.items.map((it) => `
+      <div class="product-row">
+        <div class="product-thumb"></div>
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:14px;">${it.productName || "Produit"}${it.variant ? ` <span style="font-weight:500; color:var(--color-gray);">· ${escapeHtml(it.variant)}</span>` : ""}</div>
+          <div style="color:var(--color-gray); font-size:12.5px;">${it.quantity} × ${formatPrice(it.price)}</div>
+        </div>
+        <div style="font-weight:700;">${formatPrice(it.price * it.quantity)}</div>
+      </div>`).join("");
+
+  const trackingHtml = TRACK_SEQ.map((step) => {
+    const done = doneSteps.has(step.key);
+    const stepData = order.tracking.find((t) => t.step === step.key);
+    return `
+      <div class="track-step ${done ? "done" : ""}">
+        <div class="track-dot"></div>
+        <div>
+          <div class="track-label" data-i18n="${step.i18n}"></div>
+          <div class="track-time">${stepData ? new Date(stepData.createdAt).toLocaleString(dateLocale) : "—"}</div>
+        </div>
+      </div>`;
+  }).join("");
+
+  let actionsHtml = "";
+  if (!isFinal && order.status !== "LIVREE") {
+    // Sans interface marchande connectée, la commande ne peut pas encore
+    // passer automatiquement par "Expédiée" — les deux actions client restent
+    // donc disponibles dès que la commande n'est ni livrée, ni annulée, ni en litige.
+    actionsHtml = `<div class="actions">
+      <button class="btn-brand-sm" id="receivedBtn" data-i18n="orderReceivedBtn"></button>
+      <button class="btn-outline-sm" id="disputeBtn" data-i18n="orderDisputeBtn"></button>
+    </div>
+    <div id="disputeFormWrap" hidden class="dispute-form-wrap">
+      <form id="disputeForm" class="dispute-form">
+        <div style="font-weight:700; margin-bottom:10px;" data-i18n="disputeFormTitle"></div>
+        <label class="dispute-label" for="dReason" data-i18n="disputeReasonLabel"></label>
+        <select id="dReason" required>
+          <option value="non_recu" data-i18n="disputeReasonNonRecu"></option>
+          <option value="non_conforme" data-i18n="disputeReasonNonConforme"></option>
+          <option value="endommage" data-i18n="disputeReasonEndommage"></option>
+          <option value="autre" data-i18n="disputeReasonAutre"></option>
+        </select>
+        <label class="dispute-label" for="dDesc" data-i18n="disputeDescLabel"></label>
+        <textarea id="dDesc" rows="3" minlength="10" maxlength="2000" required></textarea>
+        <div class="dispute-error" id="dError" role="alert"></div>
+        <div class="actions" style="margin-top:12px;">
+          <button type="submit" class="btn-brand-sm" id="dSubmit" data-i18n="disputeSubmit"></button>
+          <button type="button" class="btn-outline-sm" id="dCancel" data-i18n="disputeCancel"></button>
+        </div>
+      </form>
+    </div>`;
+  } else if (order.status === "LIVREE") {
+    actionsHtml = `<div class="actions">
+      <button class="btn-outline-sm" id="disputeBtn" data-i18n="orderDisputeBtn"></button>
+    </div>
+    <div id="disputeFormWrap" hidden class="dispute-form-wrap">
+      <form id="disputeForm" class="dispute-form">
+        <div style="font-weight:700; margin-bottom:10px;" data-i18n="disputeFormTitle"></div>
+        <label class="dispute-label" for="dReason" data-i18n="disputeReasonLabel"></label>
+        <select id="dReason" required>
+          <option value="non_recu" data-i18n="disputeReasonNonRecu"></option>
+          <option value="non_conforme" data-i18n="disputeReasonNonConforme"></option>
+          <option value="endommage" data-i18n="disputeReasonEndommage"></option>
+          <option value="autre" data-i18n="disputeReasonAutre"></option>
+        </select>
+        <label class="dispute-label" for="dDesc" data-i18n="disputeDescLabel"></label>
+        <textarea id="dDesc" rows="3" minlength="10" maxlength="2000" required></textarea>
+        <div class="dispute-error" id="dError" role="alert"></div>
+        <div class="actions" style="margin-top:12px;">
+          <button type="submit" class="btn-brand-sm" id="dSubmit" data-i18n="disputeSubmit"></button>
+          <button type="button" class="btn-outline-sm" id="dCancel" data-i18n="disputeCancel"></button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  main.innerHTML = `
+    <a href="commandes.html" class="back-link">← <span data-i18n="orderBack"></span></a>
+    <div class="order-head-row">
+      <div><div style="font-size:22px; font-weight:700;">${order.id}</div><div style="color:var(--color-gray);">${new Date(order.createdAt).toLocaleDateString(dateLocale)}</div></div>
+      <span class="badge ${BADGE_CLASS[order.status]}" style="font-size:13px; padding:7px 14px;" data-i18n="${STATUS_I18N[order.status]}"></span>
+    </div>
+    <div class="checkout-layout">
+      <div>
+        <div class="card">
+          <div style="font-weight:700; margin-bottom:12px;" data-i18n="orderProducts"></div>
+          ${itemsHtml}
+          <div class="total-row"><span data-i18n="cartTotal"></span><span>${formatPrice(total)}</span></div>
+        </div>
+        ${!isFinal ? `
+        <div class="card">
+          <div style="font-weight:700; margin-bottom:6px;" data-i18n="orderTracking"></div>
+          <div class="tracking">${trackingHtml}</div>
+          ${actionsHtml}
+        </div>` : `<div class="card"><div style="color:var(--color-gray);">${order.status === "ANNULEE" ? "Cette commande a été annulée." : "Un litige est en cours de traitement."}</div></div>`}
+        <div class="card" id="disputeCard" hidden>
+          <div style="font-weight:700; margin-bottom:12px;" data-i18n="disputeCardTitle"></div>
+          <div id="disputeArea"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div style="font-weight:700; margin-bottom:10px;" data-i18n="orderInfo"></div>
+          <div class="info-label" data-i18n="checkoutAddress"></div><div class="info-value">${order.address}</div>
+        </div>
+        <div class="card">
+          <div style="font-weight:700; margin-bottom:10px;" data-i18n="orderPayment"></div>
+          <div>${paymentMethodLabel(order.payment.method)}</div>
+          <div class="payment-status-row ${PAYMENT_STATUS_CLASS[order.payment.status] || "payment-status-escrow"}">
+            <span data-i18n="${PAYMENT_STATUS_I18N[order.payment.status] || "paymentStatusEscrow"}"></span>
+          </div>
+          ${order.payment.status === "EN_ATTENTE" ? `<p style="font-size:12.5px; color:var(--color-gray); margin-top:10px; line-height:1.5;">Vérifiez votre téléphone pour confirmer le paiement (code USSD ou notification MoMo). Cette page se met à jour automatiquement.</p>` : ""}
+          ${order.status === "LITIGE" ? `<p style="font-size:12.5px; color:var(--color-gray); margin-top:10px; line-height:1.5;" data-i18n="disputeNoticeText"></p>` : ""}
+        </div>
+      </div>
+    </div>`;
+  applyTranslations();
+
+  const receivedBtn = document.getElementById("receivedBtn");
+  if (receivedBtn) receivedBtn.addEventListener("click", async () => {
+    receivedBtn.disabled = true;
+    try {
+      // Mécanisme d'escrow : la réception confirmée par le client NE libère
+      // PAS directement l'argent au marchand — le backend place la commande
+      // en attente de validation par un administrateur Shopika. C'est cette
+      // validation, dans l'espace admin, qui déclenchera le versement réel.
+      await Store.confirmReception(order.id);
+      await renderOrder();
+      setTimeout(() => alert(t("receivedConfirmedToast")), 100);
+    } catch (err) {
+      alert(err.message);
+      receivedBtn.disabled = false;
+    }
+  });
+  const disputeBtn = document.getElementById("disputeBtn");
+  const formWrap = document.getElementById("disputeFormWrap");
+  if (disputeBtn && formWrap) {
+    disputeBtn.addEventListener("click", () => { formWrap.hidden = !formWrap.hidden; if (!formWrap.hidden) document.getElementById("dDesc").focus(); });
+    document.getElementById("dCancel").addEventListener("click", () => { formWrap.hidden = true; });
+    document.getElementById("disputeForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const submit = document.getElementById("dSubmit"), errBox = document.getElementById("dError");
+      errBox.textContent = "";
+      submit.disabled = true;
+      try {
+        // Le paiement reste bloqué en séquestre tant que le litige n'est pas arbitré par un administrateur.
+        await Store.openDispute(order.id, { reason: document.getElementById("dReason").value, description: document.getElementById("dDesc").value.trim() });
+        allOrdersCache = null;
+        await renderOrder();
+      } catch (err) {
+        errBox.textContent = err.message;
+        submit.disabled = false;
+      }
+    });
+  }
+  loadDisputes(order.id);
+}
+
+// Fil(s) de litige de la commande : motif, description, messages, photos, décision de Shopika.
+let disputeTimer = null;
+async function loadDisputes(orderId) {
+  clearTimeout(disputeTimer);
+  const card = document.getElementById("disputeCard");
+  const area = document.getElementById("disputeArea");
+  if (!card || !window.DisputeThread) return;
+  let list = [];
+  try { list = await Store.getOrderDisputes(orderId); } catch { return; }
+  if (!list.length) { card.hidden = true; return; }
+  card.hidden = false;
+  area.innerHTML = list.map((d) => `<div class="dsp-wrap" data-so="${d.storeOrderId}"></div>`).join("");
+  list.forEach((d) => {
+    const el = area.querySelector(`[data-so="${d.storeOrderId}"]`);
+    const api = {
+      send: (body, url) => Store.sendDisputeMessage(d.storeOrderId, body, url),
+      upload: (file) => Store.uploadDisputeImage(file),
+      reload: async () => { const fresh = (await Store.getOrderDisputes(orderId)).find((x) => x.storeOrderId === d.storeOrderId); if (fresh) DisputeThread.render(el, fresh, api); },
+    };
+    DisputeThread.render(el, d, api);
+  });
+  // Pendant qu'un litige est ouvert, on rafraîchit les réponses toutes les 30 s,
+  // sauf si la personne est en train d'écrire (son texte ne doit jamais disparaître).
+  if (list.some((d) => d.status === "ouvert")) {
+    const tick = () => {
+      if (area.contains(document.activeElement)) disputeTimer = setTimeout(tick, 10000);
+      else loadDisputes(orderId);
+    };
+    disputeTimer = setTimeout(tick, 30000);
+  }
+}
+
+if (user) renderOrder();
+</script>
+</body>
+</html>

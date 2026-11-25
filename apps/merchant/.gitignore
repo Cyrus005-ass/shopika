@@ -1,0 +1,5 @@
+.vercel
+.env*
+# Fichiers générés au build (kit de mise à jour)
+sw.js
+version.json

@@ -1,9 +1,0 @@
-{
-  "name": "shopika-client",
-  "private": true,
-  "scripts": {
-    "build": "echo 'static site - no build'",
-    "vercel-build": "echo 'static site - no build'",
-    "install": "echo 'no dependencies'"
-  }
-}
